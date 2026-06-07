@@ -1,6 +1,6 @@
 {
   "name": "ganjino-backend",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Ganjino (گنجینو) - Backend API for savings goal tracker",
   "main": "index.js",
   "scripts": {
