@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "Ganjino",
+    "slug": "ganjino",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icons/splash-icon-light.png",
+    "scheme": "ganjino",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/icons/splash-icon-light.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ECEDEE",
+      "dark": {
+        "image": "./assets/icons/splash-icon-dark.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#151718"
+      },
+      "hideAsync": false
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.amiralibgi.ganjino",
+      "icon": {
+        "dark": "./assets/icons/ios-dark.png",
+        "light": "./assets/icons/ios-light.png",
+        "tinted": "./assets/icons/ios-tinted.png"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "useLegacyPackaging": true
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "android": {
+      "package": "com.amiralibgi.ganjino",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "monochromeImage": "./assets/icons/adaptive-icon.png",
+        "backgroundColor": "#272727"
+      }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "53657bdb-5bbd-4737-aaf1-5adb8f4c9a4f"
+      }
+    },
+    "owner": "amiralibgi"
+  }
+}

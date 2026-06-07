@@ -1,0 +1,9 @@
+node_modules
+android
+ios
+.expo
+dist
+coverage
+*.config.js
+*.config.ts
+expo-env.d.ts
