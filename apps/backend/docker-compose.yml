@@ -1,0 +1,63 @@
+services:
+  backend:
+    build: .
+    container_name: ganjino-api
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/ganjino
+      - JWT_SECRET=${JWT_SECRET}
+      - GOLD_API_KEY=${GOLD_API_KEY}
+      - GOLD_API_URL=${GOLD_API_URL}
+    depends_on:
+      mongodb:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - proxy-network
+      - ganjino-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mongodb:
+    image: mongo:4.4
+    container_name: ganjino-db
+    expose:
+      - "27017"
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-logs:/var/log/mongodb
+    restart: unless-stopped
+    networks:
+      - ganjino-network
+    environment:
+      - MONGO_INITDB_DATABASE=ganjino
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  mongodb-data:
+  mongodb-logs:
+
+networks:
+  ganjino-network:
+    driver: bridge
+
+  proxy-network:
+    external: true
