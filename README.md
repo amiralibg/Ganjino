@@ -7,6 +7,7 @@
 
   <p>
     <img alt="version" src="https://img.shields.io/badge/version-0.0.1-D4AF37" />
+    <img alt="license" src="https://img.shields.io/badge/license-MIT-blue" />
     <img alt="pnpm" src="https://img.shields.io/badge/pnpm-10-F69220?logo=pnpm&logoColor=white" />
     <img alt="turborepo" src="https://img.shields.io/badge/Turborepo-2-EF4444?logo=turborepo&logoColor=white" />
     <img alt="node" src="https://img.shields.io/badge/node-%3E%3D20-339933?logo=nodedotjs&logoColor=white" />
@@ -80,3 +81,7 @@ cp apps/admin/.env.example   apps/admin/.env
 This repo was assembled from three previously independent repositories. The
 full commit history of each was preserved — browse it with
 `git log --oneline --graph`.
+
+## License
+
+Released under the [MIT License](LICENSE).
