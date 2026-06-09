@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Modal } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useGoals, useUpdateGoal, useDeleteGoal } from '@/lib/hooks/useGoals';
 import { use18KGoldPrice } from '@/lib/hooks/useGold';
-import { Heart, Coins, X, Plus } from 'lucide-react-native';
+import { Heart, Coins, Plus } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { showToast } from '@/lib/toast';
 import { TEXT, formatNumber, formatDecimal } from '@/constants/text';
@@ -15,6 +15,8 @@ import GlassInput from '@/components/ui/GlassInput';
 import DepthButton from '@/components/ui/DepthButton';
 import AppHeader from '@/components/AppHeader';
 import AddGoalModal from '@/components/AddGoalModal';
+import AppBottomSheet from '@/components/ui/AppBottomSheet';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { LinearGradient } from 'expo-linear-gradient';
 
 export default function WishlistScreen() {
@@ -31,10 +33,6 @@ export default function WishlistScreen() {
     id: string;
     name: string;
   } | null>(null);
-
-  // Memoized styles
-  const deleteButtonBackgroundStyle = useMemo(() => ({ backgroundColor: '#DC2626' }), []);
-  const deleteButtonTextStyle = useMemo(() => ({ color: '#FFFFFF' }), []);
 
   const wishlistItems = goals.filter((g) => g.isWishlisted);
 
@@ -131,7 +129,7 @@ export default function WishlistScreen() {
         style={styles.content}
         showsVerticalScrollIndicator={false}
         // eslint-disable-next-line react-native/no-inline-styles
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         enableOnAndroid={true}
         enableAutomaticScroll={true}
         extraScrollHeight={20}
@@ -143,7 +141,7 @@ export default function WishlistScreen() {
           size="large"
           // eslint-disable-next-line react-native/no-inline-styles
           style={{ marginBottom: 20 }}
-          icon={<Plus size={20} color={theme.isDark ? '#0A0A0A' : '#FFFFFF'} strokeWidth={2.5} />}
+          icon={<Plus size={20} color={'#3A2906'} strokeWidth={2.5} />}
           iconPosition="left"
         >
           {TEXT.wishlist.addNewGoal}
@@ -201,145 +199,49 @@ export default function WishlistScreen() {
         )}
       </KeyboardAwareScrollView>
 
-      <Modal
+      <AppBottomSheet
         visible={editingGoalId !== null}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setEditingGoalId(null)}
-      >
-        <KeyboardAwareScrollView
-          style={styles.modalOverlay}
-          enableOnAndroid={true}
-          enableAutomaticScroll={true}
-          extraScrollHeight={20}
-        >
-          <View
-            style={[
-              styles.modalContainer,
-              {
-                backgroundColor: theme.colors.card,
-                borderTopLeftRadius: theme.radius.xl,
-                borderTopRightRadius: theme.radius.xl,
-              },
-              theme.shadows.elevated,
-            ]}
+        onClose={() => setEditingGoalId(null)}
+        title={TEXT.wishlist.addGold}
+        scrollable={false}
+        footer={
+          <DepthButton
+            onPress={() => {
+              const goal = goals.find((g) => g._id === editingGoalId);
+              if (goal) {
+                void handleAddGold(editingGoalId!, goal.savedGoldAmount);
+              }
+            }}
+            disabled={updateGoal.isPending || !goldAmount}
+            variant="primary"
+            size="large"
           >
-            <View
-              style={[
-                styles.modalHeader,
-                // eslint-disable-next-line react-native/no-inline-styles
-                {
-                  borderBottomColor: theme.colors.border,
-                  borderBottomWidth: 1,
-                  padding: theme.spacing.lg,
-                },
-              ]}
-            >
-              <Text style={[styles.modalTitle, styles.fontBold, { color: theme.colors.text }]}>
-                {TEXT.wishlist.addGold}
-              </Text>
-              <TouchableOpacity onPress={() => setEditingGoalId(null)}>
-                <X size={24} color={theme.colors.textSecondary} strokeWidth={2.5} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={[styles.modalContent, { padding: theme.spacing.lg }]}>
-              <Text
-                style={[
-                  styles.modalLabel,
-                  styles.fontBold,
-                  // eslint-disable-next-line react-native/no-inline-styles
-                  {
-                    color: theme.colors.text,
-                    marginBottom: theme.spacing.sm,
-                    fontSize: 16,
-                  },
-                ]}
-              >
-                {TEXT.wishlist.goldAmount}
-              </Text>
-
-              <GlassInput
-                icon={<Coins size={20} color={theme.colors.textSecondary} strokeWidth={2.5} />}
-                placeholder="0"
-                value={goldAmount}
-                onChangeText={handleGoldAmountChange}
-                keyboardType="decimal-pad"
-                autoFocus
-                containerStyle={{ marginBottom: theme.spacing.lg }}
-              />
-
-              <DepthButton
-                onPress={() => {
-                  const goal = goals.find((g) => g._id === editingGoalId);
-                  if (goal) {
-                    void handleAddGold(editingGoalId!, goal.savedGoldAmount);
-                  }
-                }}
-                variant="primary"
-                size="large"
-              >
-                {TEXT.wishlist.save}
-              </DepthButton>
-            </View>
-          </View>
-        </KeyboardAwareScrollView>
-      </Modal>
-
-      <Modal
-        visible={deleteConfirm !== null}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setDeleteConfirm(null)}
+            {updateGoal.isPending ? TEXT.common.loading : TEXT.wishlist.save}
+          </DepthButton>
+        }
       >
-        <View style={styles.confirmOverlay}>
-          <View style={[styles.confirmContainer, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.confirmTitle, styles.fontBold, { color: theme.colors.text }]}>
-              {TEXT.wishlist.removeGoal}
-            </Text>
-            <Text
-              style={[
-                styles.confirmMessage,
-                styles.fontRegular,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              {TEXT.wishlist.removeConfirm(deleteConfirm?.name || '')}
-            </Text>
-            <View style={styles.confirmButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.confirmButton,
-                  styles.confirmButtonCancel,
-                  {
-                    backgroundColor: theme.colors.background,
-                    borderColor: theme.colors.cardBorder,
-                  },
-                ]}
-                onPress={() => setDeleteConfirm(null)}
-              >
-                <Text
-                  style={[styles.confirmButtonText, styles.fontBold, { color: theme.colors.text }]}
-                >
-                  {TEXT.wishlist.cancel}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.confirmButton,
-                  styles.confirmButtonDelete,
-                  deleteButtonBackgroundStyle,
-                ]}
-                onPress={confirmDelete}
-              >
-                <Text style={[styles.confirmButtonText, styles.fontBold, deleteButtonTextStyle]}>
-                  {TEXT.wishlist.remove}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        <Text style={[styles.sheetLabel, { color: theme.colors.text }]}>
+          {TEXT.wishlist.goldAmount}
+        </Text>
+        <GlassInput
+          icon={<Coins size={20} color={theme.colors.textSecondary} strokeWidth={2.5} />}
+          placeholder="0"
+          value={goldAmount}
+          onChangeText={handleGoldAmountChange}
+          keyboardType="decimal-pad"
+        />
+      </AppBottomSheet>
+
+      <ConfirmDialog
+        visible={deleteConfirm !== null}
+        title={TEXT.wishlist.removeGoal}
+        message={TEXT.wishlist.removeConfirm(deleteConfirm?.name || '')}
+        confirmLabel={TEXT.wishlist.remove}
+        cancelLabel={TEXT.wishlist.cancel}
+        loading={deleteGoal.isPending}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
 
       <AddGoalModal
         visible={addModalVisible}
@@ -351,49 +253,9 @@ export default function WishlistScreen() {
 }
 
 const styles = StyleSheet.create({
-  confirmButton: {
-    alignItems: 'center',
-    borderRadius: 12,
-    flex: 1,
-    padding: 14,
-  },
-  confirmButtonCancel: {
-    borderWidth: 1,
-  },
-  confirmButtonDelete: {},
-  confirmButtonText: {
-    fontSize: 16,
-  },
-  confirmButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  confirmContainer: {
-    borderRadius: 20,
-    maxWidth: 400,
-    padding: 24,
-    width: '100%',
-  },
-  confirmMessage: {
-    fontSize: 16,
-    lineHeight: 24,
-    marginBottom: 24,
-    textAlign: 'right',
-  },
-  confirmOverlay: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 24,
-  },
-  confirmTitle: {
-    fontSize: 20,
-    marginBottom: 12,
-    textAlign: 'right',
-  },
   container: {
     flex: 1,
+    paddingTop: 24,
   },
   content: {
     flex: 1,
@@ -409,9 +271,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: 'center',
   },
-  fontBold: {
-    fontFamily: 'Vazirmatn_700Bold',
-  },
   fontRegular: {
     fontFamily: 'Vazirmatn_400Regular',
   },
@@ -420,32 +279,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 40,
   },
-  modalContainer: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingBottom: 40,
-  },
-  modalContent: {
-    padding: 24,
-  },
-  modalHeader: {
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 24,
-  },
-  modalLabel: {
+  sheetLabel: {
+    fontFamily: 'Vazirmatn_500Medium',
     fontSize: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: 'right',
-  },
-  modalOverlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  modalTitle: {
-    fontSize: 20,
   },
 });

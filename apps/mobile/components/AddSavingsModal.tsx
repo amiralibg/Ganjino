@@ -1,99 +1,105 @@
 import { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { DollarSign, Coins, X } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Banknote, Coins, DollarSign } from 'lucide-react-native';
 import { useCreateSavingsLog } from '@/lib/hooks/useSavingsLogs';
 import { useGoals } from '@/lib/hooks/useGoals';
+import { use18KGoldPrice, useUSDPrice } from '@/lib/hooks/useGold';
 import { useTheme } from '@/contexts/ThemeContext';
 import { showToast } from '@/lib/toast';
-import { TEXT } from '@/constants/text';
-import { persianToEnglish } from '@/utils/numbers';
+import { TEXT, formatNumber } from '@/constants/text';
+import { parsePersianNumber, formatPriceInput } from '@/utils/numbers';
 import GlassInput from './ui/GlassInput';
 import DepthButton from './ui/DepthButton';
-import { LinearGradient } from 'expo-linear-gradient';
+import AppBottomSheet from './ui/AppBottomSheet';
 
 interface AddSavingsModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
+type SavingsType = 'money' | 'gold' | 'dollar';
+
+// Calm blue accent for dollar — distinct from the green (money) and gold (طلا) accents.
+const DOLLAR_ACCENT = '#4A9FE0';
+
 export default function AddSavingsModal({ visible, onClose }: AddSavingsModalProps) {
   const createSavingsLog = useCreateSavingsLog();
   const { data: goals = [] } = useGoals();
+  const { data: goldPrice } = use18KGoldPrice();
+  const { data: usdPrice } = useUSDPrice();
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
 
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
-  const [selectedType, setSelectedType] = useState<'money' | 'gold'>('money');
+  const [selectedType, setSelectedType] = useState<SavingsType>('gold');
   const [selectedGoalId, setSelectedGoalId] = useState<string | undefined>();
 
-  // Memoized styles for dynamic theming and RTL support
-  const modalContainerStyle = useMemo(
-    () => ({ flex: 1, backgroundColor: theme.colors.background }),
-    [theme.colors.background]
+  const typeOptions = useMemo(
+    () => [
+      { key: 'gold' as const, label: TEXT.history.gold, Icon: Coins, accent: theme.colors.primary },
+      {
+        key: 'dollar' as const,
+        label: TEXT.history.dollar,
+        Icon: DollarSign,
+        accent: DOLLAR_ACCENT,
+      },
+      {
+        key: 'money' as const,
+        label: TEXT.history.money,
+        Icon: Banknote,
+        accent: theme.colors.success,
+      },
+    ],
+    [theme.colors.success, theme.colors.primary]
   );
 
-  const modalHeaderStyle = useMemo(
-    () => ({
-      borderBottomColor: theme.colors.border,
-      flexDirection: 'row-reverse' as const,
-    }),
-    [theme.colors.border]
-  );
+  const activeAccent =
+    typeOptions.find((option) => option.key === selectedType)?.accent ?? theme.colors.primary;
 
-  const modalHeaderSafeAreaStyle = useMemo(
-    () => ({ paddingTop: (insets.top || 0) + 24 }),
-    [insets.top]
-  );
+  // Live Toman equivalent for gold/dollar entries.
+  const numericAmount = parsePersianNumber(amount);
+  const tomanEquivalent = useMemo(() => {
+    if (numericAmount <= 0) return null;
+    if (selectedType === 'gold' && goldPrice?.price) return numericAmount * goldPrice.price;
+    if (selectedType === 'dollar' && usdPrice?.price) return numericAmount * usdPrice.price;
+    return null;
+  }, [numericAmount, selectedType, goldPrice?.price, usdPrice?.price]);
 
-  const modalTitleStyle = useMemo(() => ({ color: theme.colors.text }), [theme.colors.text]);
+  const amountLabel =
+    selectedType === 'money'
+      ? TEXT.history.amount
+      : selectedType === 'gold'
+        ? TEXT.history.goldAmount
+        : TEXT.history.dollarAmount;
 
-  const moneyTypeButtonStyle = useMemo(
-    () => ({
-      borderColor: selectedType === 'money' ? theme.colors.success : theme.colors.border,
-      backgroundColor: selectedType === 'money' ? theme.colors.success + '10' : 'transparent',
-    }),
-    [selectedType, theme.colors.success, theme.colors.border]
-  );
+  const amountPlaceholder =
+    selectedType === 'money'
+      ? TEXT.history.amountPlaceholder
+      : selectedType === 'gold'
+        ? TEXT.history.goldAmountPlaceholder
+        : TEXT.history.dollarAmountPlaceholder;
 
-  const goldTypeButtonStyle = useMemo(
-    () => ({
-      borderColor: selectedType === 'gold' ? theme.colors.primary : theme.colors.border,
-      backgroundColor: selectedType === 'gold' ? theme.colors.primary + '10' : 'transparent',
-    }),
-    [selectedType, theme.colors.primary, theme.colors.border]
-  );
-
-  const moneyTypeTextStyle = useMemo(
-    () => ({
-      color: selectedType === 'money' ? theme.colors.success : theme.colors.textSecondary,
-    }),
-    [selectedType, theme.colors.success, theme.colors.textSecondary]
-  );
-
-  const goldTypeTextStyle = useMemo(
-    () => ({
-      color: selectedType === 'gold' ? theme.colors.primary : theme.colors.textSecondary,
-    }),
-    [selectedType, theme.colors.primary, theme.colors.textSecondary]
-  );
+  const AmountIcon =
+    selectedType === 'money' ? Banknote : selectedType === 'gold' ? Coins : DollarSign;
 
   const handleAmountChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9.\u06F0-\u06F9\u0660-\u0669]/g, '');
+    // Money is an integer Toman price → group with thousand separators.
+    if (selectedType === 'money') {
+      setAmount(formatPriceInput(text));
+      return;
+    }
+    // Gold (grams) / dollar can be fractional → keep a single decimal point.
+    const cleaned = text.replace(/[^0-9.۰-۹٠-٩]/g, '');
     const parts = cleaned.split('.');
     let final = parts[0];
     if (parts.length > 1) {
       final = parts[0] + '.' + parts.slice(1).join('');
     }
-
     setAmount(final);
   };
 
   const handleAddSavings = async () => {
-    // Convert Persian to English before parsing
-    const parsedAmount = parseFloat(persianToEnglish(amount));
+    const parsedAmount = parsePersianNumber(amount);
 
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       showToast.error(TEXT.common.error, TEXT.history.enterValidAmount);
@@ -133,274 +139,201 @@ export default function AddSavingsModal({ visible, onClose }: AddSavingsModalPro
   };
 
   const dynamicStyles = StyleSheet.create({
-    typeButton: {
-      alignItems: 'center',
-      borderRadius: 12,
-      borderWidth: 2,
-      flex: 1,
-      flexDirection: 'row',
-      gap: 8,
-      justifyContent: 'center',
-      paddingVertical: 12,
-    },
-    typeButtonText: {
-      fontFamily: 'Vazirmatn_500Medium',
-      fontSize: 14,
-    },
-    typeSelector: {
-      flexDirection: 'row',
-      gap: 12,
-      marginBottom: 16,
-    },
     goalChip: {
-      borderRadius: 999,
+      borderRadius: 16,
       borderWidth: 1,
       marginBottom: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
+      paddingHorizontal: 24,
+      paddingVertical: 16,
     },
     goalChipText: {
       fontFamily: 'Vazirmatn_500Medium',
       fontSize: 13,
       textAlign: 'right',
     },
+    previewPill: {
+      alignSelf: 'flex-end',
+      backgroundColor: activeAccent + '14',
+      borderRadius: 999,
+      marginTop: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+    },
+    previewText: {
+      color: activeAccent,
+      fontFamily: 'Vazirmatn_700Bold',
+      fontSize: 14,
+      textAlign: 'right',
+    },
+    typeButton: {
+      alignItems: 'center',
+      borderRadius: 12,
+      flex: 1,
+      gap: 6,
+      justifyContent: 'center',
+      paddingVertical: 12,
+    },
+    typeButtonText: {
+      fontFamily: 'Vazirmatn_500Medium',
+      fontSize: 13,
+    },
+    typeSelector: {
+      backgroundColor: theme.colors.inset,
+      borderColor: theme.colors.border,
+      borderRadius: 16,
+      borderWidth: 1,
+      flexDirection: 'row-reverse',
+      gap: 4,
+      marginBottom: 8,
+      padding: 4,
+    },
   });
 
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
+  const footer = (
+    <DepthButton
+      onPress={handleAddSavings}
+      disabled={createSavingsLog.isPending || !amount}
+      variant="primary"
+      size="large"
     >
-      <View style={styles.modalContainer}>
-        <LinearGradient
-          colors={[theme.colors.background, theme.colors.backgroundSecondary]}
-          style={StyleSheet.absoluteFillObject}
-        />
-        <View style={[styles.modalHeader, modalHeaderStyle, modalHeaderSafeAreaStyle]}>
-          <Text style={[styles.modalTitle, modalTitleStyle]}>{TEXT.history.addSavings}</Text>
-          <TouchableOpacity onPress={handleClose}>
-            <X size={24} color={theme.colors.textSecondary} strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
+      {createSavingsLog.isPending ? TEXT.common.loading : TEXT.common.save}
+    </DepthButton>
+  );
 
-        <KeyboardAwareScrollView
-          style={styles.modalContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          enableOnAndroid={true}
-          enableAutomaticScroll={true}
-          extraScrollHeight={20}
-        >
-          {/* Type Selector */}
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                {
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing.sm,
-                },
-              ]}
-            >
-              {TEXT.history.savingsType}
-            </Text>
-            <View style={dynamicStyles.typeSelector}>
+  return (
+    <AppBottomSheet
+      visible={visible}
+      onClose={handleClose}
+      title={TEXT.history.addSavings}
+      footer={footer}
+    >
+      {/* Type Selector */}
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>{TEXT.history.savingsType}</Text>
+        <View style={dynamicStyles.typeSelector}>
+          {typeOptions.map((option) => {
+            const isActive = selectedType === option.key;
+            const color = isActive ? option.accent : theme.colors.textSecondary;
+            return (
               <TouchableOpacity
-                style={[dynamicStyles.typeButton, moneyTypeButtonStyle]}
-                onPress={() => setSelectedType('money')}
-              >
-                <DollarSign
-                  size={18}
-                  color={
-                    selectedType === 'money' ? theme.colors.success : theme.colors.textSecondary
-                  }
-                />
-                <Text style={[dynamicStyles.typeButtonText, moneyTypeTextStyle]}>
-                  {TEXT.history.money}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[dynamicStyles.typeButton, goldTypeButtonStyle]}
-                onPress={() => setSelectedType('gold')}
-              >
-                <Coins
-                  size={18}
-                  color={
-                    selectedType === 'gold' ? theme.colors.primary : theme.colors.textSecondary
-                  }
-                />
-                <Text style={[dynamicStyles.typeButtonText, goldTypeTextStyle]}>
-                  {TEXT.history.gold}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Amount Input */}
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                {
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing.sm,
-                },
-              ]}
-            >
-              {selectedType === 'money' ? TEXT.history.amount : TEXT.history.goldAmount}
-            </Text>
-            <GlassInput
-              icon={
-                selectedType === 'money' ? (
-                  <DollarSign size={20} color={theme.colors.textSecondary} strokeWidth={2.5} />
-                ) : (
-                  <Coins size={20} color={theme.colors.textSecondary} strokeWidth={2.5} />
-                )
-              }
-              placeholder={
-                selectedType === 'money'
-                  ? TEXT.history.amountPlaceholder
-                  : TEXT.history.goldAmountPlaceholder
-              }
-              value={amount}
-              onChangeText={handleAmountChange}
-              keyboardType="numeric"
-            />
-          </View>
-
-          {/* Goal Allocation */}
-          <View style={styles.inputGroup}>
-            <Text
-              style={[
-                styles.label,
-                {
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing.sm,
-                },
-              ]}
-            >
-              {TEXT.history.goalAllocation}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setSelectedGoalId(undefined)}
-              style={[
-                dynamicStyles.goalChip,
-                {
-                  borderColor: selectedGoalId ? theme.colors.border : theme.colors.primary,
-                  backgroundColor: selectedGoalId ? 'transparent' : theme.colors.primary + '20',
-                },
-              ]}
-            >
-              <Text
+                key={option.key}
                 style={[
-                  dynamicStyles.goalChipText,
-                  { color: selectedGoalId ? theme.colors.textSecondary : theme.colors.primary },
-                ]}
-              >
-                {TEXT.history.noGoalAllocation}
-              </Text>
-            </TouchableOpacity>
-            {goals.map((goal) => (
-              <TouchableOpacity
-                key={goal._id}
-                onPress={() => setSelectedGoalId(goal._id)}
-                style={[
-                  dynamicStyles.goalChip,
-                  {
-                    borderColor:
-                      selectedGoalId === goal._id ? theme.colors.primary : theme.colors.border,
-                    backgroundColor:
-                      selectedGoalId === goal._id ? theme.colors.primary + '20' : 'transparent',
+                  dynamicStyles.typeButton,
+                  // eslint-disable-next-line react-native/no-inline-styles
+                  isActive && {
+                    backgroundColor: option.accent + '1A',
+                    borderWidth: 1,
+                    borderColor: option.accent,
                   },
                 ]}
+                onPress={() => setSelectedType(option.key)}
               >
-                <Text
-                  style={[
-                    dynamicStyles.goalChipText,
-                    {
-                      color:
-                        selectedGoalId === goal._id
-                          ? theme.colors.primary
-                          : theme.colors.textSecondary,
-                    },
-                  ]}
-                >
-                  {goal.name}
-                </Text>
+                <option.Icon size={20} color={color} strokeWidth={2.2} />
+                <Text style={[dynamicStyles.typeButtonText, { color }]}>{option.label}</Text>
               </TouchableOpacity>
-            ))}
-          </View>
+            );
+          })}
+        </View>
+      </View>
 
-          {/* Note Input */}
-          <View style={styles.inputGroup}>
+      {/* Amount Input */}
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>{amountLabel}</Text>
+        <GlassInput
+          icon={<AmountIcon size={20} color={theme.colors.textSecondary} strokeWidth={2.5} />}
+          placeholder={amountPlaceholder}
+          value={amount}
+          onChangeText={handleAmountChange}
+          keyboardType="numeric"
+        />
+        {tomanEquivalent !== null && (
+          <View style={dynamicStyles.previewPill}>
+            <Text style={dynamicStyles.previewText}>
+              {TEXT.history.equivalentValue} {formatNumber(tomanEquivalent)} {TEXT.common.toman}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Goal Allocation */}
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>
+          {TEXT.history.goalAllocation}
+        </Text>
+        <TouchableOpacity
+          onPress={() => setSelectedGoalId(undefined)}
+          style={[
+            dynamicStyles.goalChip,
+            // eslint-disable-next-line react-native/no-inline-styles
+            {
+              borderColor: selectedGoalId ? theme.colors.border : theme.colors.primary,
+              backgroundColor: selectedGoalId ? 'transparent' : theme.colors.primary + '20',
+            },
+          ]}
+        >
+          <Text
+            style={[
+              dynamicStyles.goalChipText,
+              { color: selectedGoalId ? theme.colors.textSecondary : theme.colors.primary },
+            ]}
+          >
+            {TEXT.history.noGoalAllocation}
+          </Text>
+        </TouchableOpacity>
+        {goals.map((goal) => (
+          <TouchableOpacity
+            key={goal._id}
+            onPress={() => setSelectedGoalId(goal._id)}
+            style={[
+              dynamicStyles.goalChip,
+              // eslint-disable-next-line react-native/no-inline-styles
+              {
+                borderColor:
+                  selectedGoalId === goal._id ? theme.colors.primary : theme.colors.border,
+                backgroundColor:
+                  selectedGoalId === goal._id ? theme.colors.primary + '20' : 'transparent',
+              },
+            ]}
+          >
             <Text
               style={[
-                styles.label,
+                dynamicStyles.goalChipText,
                 {
-                  color: theme.colors.text,
-                  marginBottom: theme.spacing.sm,
+                  color:
+                    selectedGoalId === goal._id ? theme.colors.primary : theme.colors.textSecondary,
                 },
               ]}
             >
-              {TEXT.history.note} ({TEXT.history.optional})
+              {goal.name}
             </Text>
-            <GlassInput
-              placeholder={TEXT.history.notePlaceholder}
-              value={note}
-              onChangeText={setNote}
-              multiline
-            />
-          </View>
-
-          {/* Save Button */}
-          <View style={styles.buttonGroup}>
-            <DepthButton
-              onPress={handleAddSavings}
-              disabled={createSavingsLog.isPending || !amount}
-              variant="primary"
-              size="large"
-            >
-              {createSavingsLog.isPending ? TEXT.common.loading : TEXT.common.save}
-            </DepthButton>
-          </View>
-        </KeyboardAwareScrollView>
+          </TouchableOpacity>
+        ))}
       </View>
-    </Modal>
+
+      {/* Note Input */}
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, { color: theme.colors.text }]}>
+          {TEXT.history.note} ({TEXT.history.optional})
+        </Text>
+        <GlassInput
+          placeholder={TEXT.history.notePlaceholder}
+          value={note}
+          onChangeText={setNote}
+          multiline
+        />
+      </View>
+    </AppBottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  buttonGroup: {
-    gap: 12,
-    marginBottom: 16,
-  },
   inputGroup: {
     marginBottom: 24,
   },
   label: {
     fontFamily: 'Vazirmatn_500Medium',
     fontSize: 16,
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: 'right',
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalContent: {
-    flex: 1,
-    padding: 24,
-  },
-  modalHeader: {
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    justifyContent: 'space-between',
-    padding: 24,
-    paddingTop: 24,
-  },
-  modalTitle: {
-    fontFamily: 'Vazirmatn_700Bold',
-    fontSize: 24,
   },
 });

@@ -12,7 +12,7 @@ const getGoldApiKey = (): string => {
   return apiKey;
 };
 
-interface GoldItem {
+interface MarketItem {
   date: string;
   time: string;
   time_unix: number;
@@ -26,53 +26,63 @@ interface GoldItem {
 }
 
 interface GoldApiResponse {
-  gold: GoldItem[];
-  currency: unknown[];
+  gold: MarketItem[];
+  currency: MarketItem[];
   cryptocurrency: unknown[];
 }
 
-interface CachedGoldData {
-  data: GoldItem[];
+interface CachedMarketData {
+  data: GoldApiResponse;
   timestamp: number;
 }
 
-let goldPriceCache: CachedGoldData | null = null;
+let marketCache: CachedMarketData | null = null;
 
-export const fetchGoldPrices = async (): Promise<GoldItem[]> => {
-  // Check if cache is valid
-  if (goldPriceCache && Date.now() - goldPriceCache.timestamp < CACHE_DURATION) {
-    console.log('Returning cached gold prices');
-    return goldPriceCache.data;
+/**
+ * Fetch the full market snapshot (gold + currency) with a shared 5-minute cache.
+ * A single upstream request returns gold and currency, so both share one cache.
+ */
+const fetchMarketData = async (): Promise<GoldApiResponse> => {
+  if (marketCache && Date.now() - marketCache.timestamp < CACHE_DURATION) {
+    console.log('Returning cached market data');
+    return marketCache.data;
   }
 
   try {
-    console.log('Fetching fresh gold prices from API');
+    console.log('Fetching fresh market data from API');
     const response = await axios.get<GoldApiResponse>(GOLD_API_URL, {
       params: { key: getGoldApiKey() },
       timeout: 10000, // 10 second timeout
     });
 
-    const goldData = response.data.gold;
-
-    // Update cache
-    goldPriceCache = {
-      data: goldData,
+    marketCache = {
+      data: response.data,
       timestamp: Date.now(),
     };
 
-    return goldData;
+    return response.data;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Failed to fetch gold prices:', errorMessage);
+    console.error('Failed to fetch market data:', errorMessage);
 
     // If we have cached data (even if expired), return it
-    if (goldPriceCache) {
+    if (marketCache) {
       console.log('Returning expired cache due to API error');
-      return goldPriceCache.data;
+      return marketCache.data;
     }
 
-    throw new Error('Failed to fetch gold prices and no cache available');
+    throw new Error('Failed to fetch market data and no cache available');
   }
+};
+
+export const fetchGoldPrices = async (): Promise<MarketItem[]> => {
+  const market = await fetchMarketData();
+  return market.gold;
+};
+
+export const fetchCurrencyPrices = async (): Promise<MarketItem[]> => {
+  const market = await fetchMarketData();
+  return market.currency;
 };
 
 export const get18KGoldPrice = async (): Promise<number> => {
@@ -84,6 +94,20 @@ export const get18KGoldPrice = async (): Promise<number> => {
   }
 
   return gold18K.price;
+};
+
+/**
+ * Free-market US Dollar price in Toman (symbol "USD").
+ */
+export const getUSDPrice = async (): Promise<number> => {
+  const currencyPrices = await fetchCurrencyPrices();
+  const usd = currencyPrices.find((item) => item.symbol === 'USD');
+
+  if (!usd) {
+    throw new Error('USD price not found');
+  }
+
+  return usd.price;
 };
 
 export const calculateGoldEquivalent = (priceInToman: number, goldPricePerGram: number): number => {

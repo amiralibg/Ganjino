@@ -4,7 +4,7 @@ export interface SavingsLog {
   _id: string;
   userId: string;
   amount: number;
-  type: 'money' | 'gold';
+  type: 'money' | 'gold' | 'dollar';
   goalId?: {
     _id: string;
     name: string;
@@ -24,7 +24,7 @@ export interface SavingsLog {
 
 export interface CreateSavingsLogData {
   amount: number;
-  type?: 'money' | 'gold';
+  type?: 'money' | 'gold' | 'dollar';
   goalId?: string;
   goalAllocations?: Array<{
     goalId: string;
@@ -37,7 +37,7 @@ export interface CreateSavingsLogData {
 export interface GetSavingsLogsParams {
   startDate?: string;
   endDate?: string;
-  type?: 'money' | 'gold';
+  type?: 'money' | 'gold' | 'dollar';
   goalId?: string;
   limit?: number;
 }
@@ -49,12 +49,13 @@ export interface SavingsAnalytics {
   totals: {
     money: number;
     gold: number;
+    dollar: number;
     entries: number;
   };
   byPeriod: Array<{
     _id: {
       period: string;
-      type: 'money' | 'gold';
+      type: 'money' | 'gold' | 'dollar';
     };
     totalAmount: number;
     count: number;

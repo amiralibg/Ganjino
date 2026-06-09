@@ -18,3 +18,12 @@ export const use18KGoldPrice = () => {
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
+
+export const useUSDPrice = () => {
+  return useQuery({
+    queryKey: ['gold', 'usd'],
+    queryFn: goldApi.getUSD,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+};

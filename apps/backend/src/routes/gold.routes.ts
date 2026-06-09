@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getGoldPrices, get18KPrice } from '../controllers/gold.controller';
+import { getGoldPrices, get18KPrice, getUSD } from '../controllers/gold.controller';
 
 const router: Router = Router();
 
@@ -48,5 +48,28 @@ router.get('/', getGoldPrices);
  *         description: Server error
  */
 router.get('/18k', get18KPrice);
+
+/**
+ * @swagger
+ * /api/gold/usd:
+ *   get:
+ *     summary: Get free-market US Dollar price in Toman
+ *     tags: [Gold]
+ *     responses:
+ *       200:
+ *         description: USD price retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 price:
+ *                   type: number
+ *                 unit:
+ *                   type: string
+ *       500:
+ *         description: Server error
+ */
+router.get('/usd', getUSD);
 
 export default router;

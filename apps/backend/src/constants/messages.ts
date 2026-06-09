@@ -60,7 +60,7 @@ export const MESSAGES = {
     goalNotFound: 'هدف پیدا نشد',
     createdSuccess: 'ثبت پس‌انداز با موفقیت انجام شد',
     failedCreate: 'ثبت پس‌انداز ناموفق بود',
-    invalidType: 'نوع پس‌انداز باید پول یا طلا باشد',
+    invalidType: 'نوع پس‌انداز باید پول، طلا یا دلار باشد',
     invalidGoalId: 'شناسه هدف نامعتبر است',
     invalidLogsLimit: 'حداکثر تعداد باید بین ۱ تا ۵۰۰ باشد',
     invalidPeriod: 'بازه تجمیع باید روز، هفته یا ماه باشد',
@@ -76,6 +76,7 @@ export const MESSAGES = {
   gold: {
     failedFetchGoldPrices: 'دریافت قیمت‌های طلا ناموفق بود',
     failedFetch18kPrice: 'دریافت قیمت طلای ۱۸ عیار ناموفق بود',
+    failedFetchUsdPrice: 'دریافت قیمت دلار ناموفق بود',
   },
   goldHistory: {
     invalidDateRange: 'بازه تاریخ نامعتبر است',
@@ -116,7 +117,7 @@ export const MESSAGES = {
     currencyString: 'واحد پول باید متن باشد',
     monthlySavingsPercentageRange: 'درصد پس‌انداز ماهانه باید بین ۰ تا ۱۰۰ باشد',
     amountPositive: 'مقدار باید عددی مثبت باشد',
-    savingsTypeValid: 'نوع باید پول یا طلا باشد',
+    savingsTypeValid: 'نوع باید پول، طلا یا دلار باشد',
     goalIdValid: 'شناسه هدف نامعتبر است',
     noteMax500: 'یادداشت باید حداکثر ۵۰۰ کاراکتر باشد',
     dateFormatInvalid: 'فرمت تاریخ نامعتبر است',

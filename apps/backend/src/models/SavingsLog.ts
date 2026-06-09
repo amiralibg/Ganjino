@@ -19,10 +19,10 @@ import mongoose, { Document, Schema } from 'mongoose';
  *           description: The id of the user
  *         amount:
  *           type: number
- *           description: Amount saved in currency or gold grams
+ *           description: Amount saved (Toman, gold grams, or US Dollars)
  *         type:
  *           type: string
- *           enum: [money, gold]
+ *           enum: [money, gold, dollar]
  *           description: Type of savings entry
  *         goalId:
  *           type: string
@@ -41,8 +41,8 @@ import mongoose, { Document, Schema } from 'mongoose';
  */
 export interface ISavingsLog extends Document {
   userId: mongoose.Types.ObjectId;
-  amount: number; // In currency (Toman) or gold (grams) depending on type
-  type: 'money' | 'gold';
+  amount: number; // Toman (money), grams (gold), or US Dollars (dollar) depending on type
+  type: 'money' | 'gold' | 'dollar';
   goalId?: mongoose.Types.ObjectId; // Optional: which goal this savings is for
   goalAllocations: Array<{
     goalId: mongoose.Types.ObjectId;
@@ -70,7 +70,7 @@ const SavingsLogSchema: Schema = new Schema(
     },
     type: {
       type: String,
-      enum: ['money', 'gold'],
+      enum: ['money', 'gold', 'dollar'],
       required: true,
       default: 'money',
     },

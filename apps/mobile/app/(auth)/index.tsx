@@ -181,7 +181,12 @@ export default function AuthScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
+        <View
+          style={[
+            styles.iconContainer,
+            { backgroundColor: theme.colors.goldSoft, borderColor: theme.colors.goldSoftAlt },
+          ]}
+        >
           <WalletIcon size={48} color={theme.colors.primary} />
         </View>
         <Text style={[styles.title, { color: theme.colors.text, fontFamily: 'Vazirmatn_700Bold' }]}>
@@ -276,12 +281,7 @@ export default function AuthScreen() {
           onPress={handleAuth}
           disabled={loading || isOffline}
         >
-          <Text
-            style={[
-              styles.buttonText,
-              { color: theme.colors.background, fontFamily: 'Vazirmatn_700Bold' },
-            ]}
-          >
+          <Text style={[styles.buttonText, styles.buttonTextOnGold]}>
             {loading ? TEXT.common.loading : isSignUp ? TEXT.auth.signUp : TEXT.auth.signIn}
           </Text>
         </TouchableOpacity>
@@ -304,15 +304,19 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 20,
     marginTop: 8,
-    padding: 16,
+    padding: 17,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 16.5,
+  },
+  buttonTextOnGold: {
+    color: '#3A2906',
+    fontFamily: 'Vazirmatn_700Bold',
   },
   container: {
     flex: 1,
@@ -332,14 +336,15 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignItems: 'center',
-    borderRadius: 48,
+    borderRadius: 28,
+    borderWidth: 1,
     height: 96,
     justifyContent: 'center',
     marginBottom: 24,
     width: 96,
   },
   input: {
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
     fontSize: 16,
     marginBottom: 16,
@@ -351,7 +356,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   passwordInput: {
-    borderRadius: 12,
+    borderRadius: 18,
     borderWidth: 1,
     fontSize: 16,
     padding: 16,

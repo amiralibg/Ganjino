@@ -16,7 +16,7 @@ import ThemedSwitch from '@/components/ui/ThemedSwitch';
 import AppHeader from '@/components/AppHeader';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TEXT, formatNumber } from '@/constants/text';
-import { persianToEnglish } from '@/utils/numbers';
+import { persianToEnglish, formatPriceInput } from '@/utils/numbers';
 import { formatDate } from '@/constants/text';
 import { registerForPushNotificationsAsync } from '@/lib/notifications';
 
@@ -44,7 +44,7 @@ export default function ProfileScreen() {
   useEffect(() => {
     if (profile) {
       if (profile.monthlySalary > 0) {
-        setMonthlySalary(String(profile.monthlySalary));
+        setMonthlySalary(formatPriceInput(String(profile.monthlySalary)));
       } else {
         setMonthlySalary('');
       }
@@ -53,7 +53,7 @@ export default function ProfileScreen() {
       );
       setNotificationsEnabled(Boolean(profile.notificationsEnabled));
       if (profile.goldPriceAlertThreshold && profile.goldPriceAlertThreshold > 0) {
-        setGoldAlertThreshold(String(profile.goldPriceAlertThreshold));
+        setGoldAlertThreshold(formatPriceInput(String(profile.goldPriceAlertThreshold)));
       } else {
         setGoldAlertThreshold('');
       }
@@ -61,12 +61,7 @@ export default function ProfileScreen() {
   }, [profile]);
 
   const handleSalaryChange = (text: string) => {
-    const cleanedText = text.replace(/[^\d\u06F0-\u06F9\u0660-\u0669]/g, '');
-    if (cleanedText === '') {
-      setMonthlySalary('');
-      return;
-    }
-    setMonthlySalary(cleanedText);
+    setMonthlySalary(formatPriceInput(text));
   };
 
   const handlePercentageChange = (text: string) => {
@@ -121,14 +116,7 @@ export default function ProfileScreen() {
   };
 
   const handleGoldAlertThresholdChange = (text: string) => {
-    const cleanedText = text.replace(/[^\d\u06F0-\u06F9\u0660-\u0669]/g, '');
-
-    if (cleanedText === '') {
-      setGoldAlertThreshold('');
-      return;
-    }
-
-    setGoldAlertThreshold(cleanedText);
+    setGoldAlertThreshold(formatPriceInput(text));
   };
 
   const handleSaveNotifications = async () => {
@@ -229,6 +217,7 @@ export default function ProfileScreen() {
       margin: theme.spacing.lg,
       shadowColor: 'transparent',
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [theme.spacing.lg, theme.colors.error]
   );
 
@@ -290,6 +279,7 @@ export default function ProfileScreen() {
                 key={item.key}
                 style={[
                   styles.sectionTabButton,
+                  // eslint-disable-next-line react-native/no-inline-styles
                   {
                     borderColor: isActive ? theme.colors.primary : theme.colors.border,
                     backgroundColor: isActive ? theme.colors.primary + '20' : 'transparent',
@@ -552,12 +542,20 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
+    paddingTop: 24,
   },
   scrollContent: {
     paddingBottom: 24,
   },
   section: {
     padding: 24,
+  },
+  sectionDescription: {
+    fontFamily: 'Vazirmatn_400Regular',
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 24,
+    textAlign: 'right',
   },
   sectionTabButton: {
     borderRadius: 999,
@@ -576,13 +574,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 16,
     paddingHorizontal: 24,
-  },
-  sectionDescription: {
-    fontFamily: 'Vazirmatn_400Regular',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 24,
-    textAlign: 'right',
   },
   sectionTitle: {
     fontFamily: 'Vazirmatn_700Bold',

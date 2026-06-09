@@ -5,7 +5,7 @@ import SavingsLog, { ISavingsLog } from '../models/SavingsLog';
 import Goal from '../models/Goal';
 import { AuthRequest } from '../middleware/auth';
 import { MESSAGES } from '../constants/messages';
-import { get18KGoldPrice } from '../services/goldPrice.service';
+import { get18KGoldPrice, getUSDPrice } from '../services/goldPrice.service';
 
 /**
  * Create a new savings log entry
@@ -89,9 +89,17 @@ export const createSavingsLog = async (req: AuthRequest, res: Response): Promise
       return;
     }
 
+    const resolvedType = type || 'money';
+
+    // Goal progress is tracked in gold grams, so non-gold allocations must be
+    // converted to grams at current prices (dollar -> toman -> grams).
     let currentGoldPrice: number | null = null;
-    if ((type || 'money') === 'money' && mergedAllocations.length > 0) {
+    let currentUsdPrice: number | null = null;
+    if (resolvedType !== 'gold' && mergedAllocations.length > 0) {
       currentGoldPrice = await get18KGoldPrice();
+      if (resolvedType === 'dollar') {
+        currentUsdPrice = await getUSDPrice();
+      }
     }
 
     const allocationGoalIds = mergedAllocations.map((allocation) => allocation.goalId);
@@ -107,13 +115,17 @@ export const createSavingsLog = async (req: AuthRequest, res: Response): Promise
       }
     }
 
+    const hasGoldPrice = !!currentGoldPrice && currentGoldPrice > 0;
     const normalizedAllocations = mergedAllocations.map((allocation) => {
-      const allocatedGoldAmount =
-        (type || 'money') === 'gold'
-          ? allocation.amount
-          : currentGoldPrice && currentGoldPrice > 0
-            ? allocation.amount / currentGoldPrice
-            : 0;
+      let allocatedGoldAmount = 0;
+      if (resolvedType === 'gold') {
+        allocatedGoldAmount = allocation.amount;
+      } else if (resolvedType === 'dollar') {
+        const tomanValue = currentUsdPrice ? allocation.amount * currentUsdPrice : 0;
+        allocatedGoldAmount = hasGoldPrice ? tomanValue / (currentGoldPrice as number) : 0;
+      } else {
+        allocatedGoldAmount = hasGoldPrice ? allocation.amount / (currentGoldPrice as number) : 0;
+      }
 
       return {
         goalId: new mongoose.Types.ObjectId(allocation.goalId),
@@ -125,7 +137,7 @@ export const createSavingsLog = async (req: AuthRequest, res: Response): Promise
     const savingsLog = new SavingsLog({
       userId,
       amount: Number(amount),
-      type: type || 'money',
+      type: resolvedType,
       goalId: goalId || undefined,
       goalAllocations: normalizedAllocations,
       note: note || undefined,
@@ -192,7 +204,7 @@ export const getSavingsLogs = async (req: AuthRequest, res: Response): Promise<v
     }
 
     if (type) {
-      if (type !== 'money' && type !== 'gold') {
+      if (type !== 'money' && type !== 'gold' && type !== 'dollar') {
         res.status(400).json({ error: MESSAGES.savings.invalidType });
         return;
       }
@@ -350,6 +362,7 @@ export const getSavingsAnalytics = async (req: AuthRequest, res: Response): Prom
     // Format response
     const totalMoney = Number(totals.find((t) => t._id === 'money')?.totalAmount) || 0;
     const totalGold = Number(totals.find((t) => t._id === 'gold')?.totalAmount) || 0;
+    const totalDollar = Number(totals.find((t) => t._id === 'dollar')?.totalAmount) || 0;
     const totalEntries = Number(totals.reduce((sum, t) => sum + t.count, 0));
 
     res.status(200).json({
@@ -360,6 +373,7 @@ export const getSavingsAnalytics = async (req: AuthRequest, res: Response): Prom
         totals: {
           money: totalMoney,
           gold: totalGold,
+          dollar: totalDollar,
           entries: totalEntries,
         },
         byPeriod: aggregation,

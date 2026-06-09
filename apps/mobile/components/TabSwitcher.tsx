@@ -1,11 +1,33 @@
-import { View, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useEffect } from 'react';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, usePathname, type Href } from 'expo-router';
-import { Coins, Heart, History } from 'lucide-react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useTheme } from '@/contexts/ThemeContext';
-import { TEXT } from '@/constants/text';
+import { NavSavingsIcon, NavHeartIcon, NavGoldIcon } from '@/components/icons/NavIcons';
 
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+type NavIconComponent = typeof NavSavingsIcon;
+
+interface NavTab {
+  name: string;
+  route: Href;
+  Icon: NavIconComponent;
+}
+
+// Dark warm-brown icon color sitting on the gold active circle
+const ACTIVE_ICON_COLOR = '#3A2906';
+
+// Spring used for the liquid glide/morph of the pills and gold blob
+const LIQUID = LinearTransition.springify().damping(17).stiffness(170).mass(0.9);
 
 export default function TabSwitcher() {
   const { theme } = useTheme();
@@ -13,126 +35,136 @@ export default function TabSwitcher() {
   const pathname = usePathname();
   const isProfileScreen = pathname === '/profile';
 
-  const tabs: Array<{ name: string; route: Href; icon: typeof Coins; label: string }> = [
-    { name: 'index', route: '/', icon: Coins, label: TEXT.navigation.calculate },
-    { name: 'wishlist', route: '/wishlist', icon: Heart, label: TEXT.navigation.wishlist },
-    { name: 'savings', route: '/savings', icon: History, label: TEXT.navigation.history },
+  // Visual order, right → left in RTL: savings · goals · gold
+  const tabs: NavTab[] = [
+    { name: 'savings', route: '/savings', Icon: NavSavingsIcon },
+    { name: 'wishlist', route: '/wishlist', Icon: NavHeartIcon },
+    { name: 'index', route: '/', Icon: NavGoldIcon },
   ];
 
-  // Helper function to get tab background color
-  const getTabBackgroundColor = (isFocused: boolean) => ({
-    backgroundColor: isFocused ? theme.colors.primary + '26' : 'transparent',
-  });
+  const isActive = (route: Href) => {
+    if (route === '/') return pathname === '/' || pathname === '/index';
+    return pathname === route;
+  };
+
+  const activeIndex = Math.max(
+    0,
+    tabs.findIndex((t) => isActive(t.route))
+  );
+  const before = tabs.slice(0, activeIndex); // lower index → rightmost in RTL
+  const after = tabs.slice(activeIndex + 1);
+  const activeTab = tabs[activeIndex];
+
+  // Squash-then-bloom pulse on the gold blob each time the active tab changes,
+  // giving the "liquid separating from the pill" feel.
+  const blobScale = useSharedValue(1);
+  useEffect(() => {
+    blobScale.value = withSequence(
+      withTiming(0.78, { duration: 110 }),
+      withSpring(1, { damping: 8, stiffness: 130, mass: 0.7 })
+    );
+  }, [pathname, blobScale]);
+  const blobAnimStyle = useAnimatedStyle(() => ({ transform: [{ scale: blobScale.value }] }));
+
+  const navigate = (route: Href, active: boolean) => {
+    if (!active) router.push(route);
+  };
 
   const dynamicStyles = StyleSheet.create({
-    container: {
-      alignSelf: 'center',
-      borderColor: theme.colors.borderLight,
-      borderRadius: 32,
-      borderWidth: 1.5,
-      bottom: 42,
-      overflow: 'hidden',
-      position: 'absolute',
-      width: '90%',
-    },
-    glowOuter: {
-      ...Platform.select({
-        ios: {
-          shadowColor: theme.colors.primary,
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: theme.isDark ? 0.5 : 0.3,
-          shadowRadius: 24,
-        },
-        android: {
-          elevation: 16,
-        },
-      }),
-    },
-    hiddenContainer: {
-      opacity: 0,
-      transform: [{ translateY: 80 }],
-    },
-    hiddenInner: {
-      opacity: 0,
-    },
-    innerContainer: {
+    blob: {
       alignItems: 'center',
-      backgroundColor: theme.isDark ? theme.colors.cardElevated : theme.colors.cardElevated + 'E0',
-      borderRadius: 30,
-      flexDirection: 'row',
-      gap: 8,
+      borderRadius: theme.radius.full,
+      height: 60,
       justifyContent: 'center',
-      paddingHorizontal: 16,
-      paddingVertical: 16,
+      width: 60,
     },
-    text: {
-      color: theme.colors.primary,
-      fontFamily: 'Vazirmatn_700Bold',
-      fontSize: 14,
-
-      marginLeft: 6,
+    container: {
+      alignItems: 'center',
+      bottom: 32,
+      flexDirection: 'row-reverse',
+      gap: 12,
+      justifyContent: 'center',
+      left: 0,
+      position: 'absolute',
+      right: 0,
+    },
+    hidden: {
+      opacity: 0,
+      transform: [{ translateY: 90 }],
+    },
+    pill: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.card,
+      borderColor: theme.colors.border,
+      borderRadius: theme.radius.full,
+      borderWidth: 1,
+      flexDirection: 'row-reverse',
+      gap: 4,
+      padding: 7,
+    },
+    slot: {
+      alignItems: 'center',
+      borderRadius: theme.radius.full,
+      height: 46,
+      justifyContent: 'center',
+      width: 46,
     },
   });
 
-  return (
-    <View
-      pointerEvents={isProfileScreen ? 'none' : 'auto'}
-      style={[
-        dynamicStyles.container,
-        dynamicStyles.glowOuter,
-        isProfileScreen && dynamicStyles.hiddenContainer,
-      ]}
-    >
-      <View style={[dynamicStyles.innerContainer, isProfileScreen && dynamicStyles.hiddenInner]}>
-        {tabs.map((tab) => {
-          const isFocused = pathname === tab.route;
-          const Icon = tab.icon;
-
-          const onPress = () => {
-            if (!isFocused) {
-              router.push(tab.route);
-            }
-          };
-
+  const renderPill = (items: NavTab[], key: string) => {
+    if (items.length === 0) return null;
+    return (
+      <Animated.View
+        key={key}
+        layout={LIQUID}
+        entering={FadeIn.duration(160)}
+        exiting={FadeOut.duration(140)}
+        style={dynamicStyles.pill}
+      >
+        {items.map((tab) => {
+          const { Icon, route, name } = tab;
           return (
-            <AnimatedTouchableOpacity
-              layout={LinearTransition.springify().mass(0.5)}
-              key={tab.name}
-              onPress={onPress}
-              style={[styles.tabItem, getTabBackgroundColor(isFocused)]}
+            <TouchableOpacity
+              key={name}
+              activeOpacity={0.7}
+              onPress={() => navigate(route, false)}
+              style={dynamicStyles.slot}
             >
-              <Icon
-                size={20}
-                color={isFocused ? theme.colors.primary : theme.colors.textSecondary}
-                strokeWidth={2.5}
-              />
-              {isFocused && (
-                <Animated.Text
-                  entering={FadeIn.duration(200)}
-                  exiting={FadeOut.duration(200)}
-                  style={dynamicStyles.text}
-                >
-                  {tab.label}
-                </Animated.Text>
-              )}
-            </AnimatedTouchableOpacity>
+              <Icon size={26} color={theme.colors.textTertiary} />
+            </TouchableOpacity>
           );
         })}
-      </View>
-    </View>
+      </Animated.View>
+    );
+  };
+
+  const ActiveIcon = activeTab.Icon;
+
+  return (
+    <Animated.View
+      pointerEvents={isProfileScreen ? 'none' : 'auto'}
+      layout={LIQUID}
+      style={[dynamicStyles.container, isProfileScreen && dynamicStyles.hidden]}
+    >
+      {/* before-pill (rightmost in RTL) */}
+      {renderPill(before, 'pill-right')}
+
+      {/* gold blob — glides between positions, with a squash/bloom pulse */}
+      <Animated.View key="blob" layout={LIQUID} style={blobAnimStyle}>
+        <TouchableOpacity activeOpacity={0.9} onPress={() => navigate(activeTab.route, true)}>
+          <LinearGradient
+            colors={theme.colors.primaryGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={dynamicStyles.blob}
+          >
+            <ActiveIcon size={26} color={ACTIVE_ICON_COLOR} />
+          </LinearGradient>
+        </TouchableOpacity>
+      </Animated.View>
+
+      {/* after-pill (leftmost in RTL) */}
+      {renderPill(after, 'pill-left')}
+    </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  tabItem: {
-    alignItems: 'center',
-    borderRadius: 28,
-    flexDirection: 'row',
-    gap: 8,
-    height: 48,
-    justifyContent: 'center',
-    marginHorizontal: 2,
-    paddingHorizontal: 20,
-    transform: [{ scale: 1 }],
-  },
-});

@@ -23,4 +23,9 @@ export const goldApi = {
     const response = await apiClient.get<{ price: number; unit: string }>('/gold/18k');
     return response.data;
   },
+
+  getUSD: async (): Promise<{ price: number; unit: string }> => {
+    const response = await apiClient.get<{ price: number; unit: string }>('/gold/usd');
+    return response.data;
+  },
 };

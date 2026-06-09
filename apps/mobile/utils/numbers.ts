@@ -89,6 +89,22 @@ export const formatPersianDecimal = (num: number | string, decimals: number = 2)
 };
 
 /**
+ * Format a price string for live text input: keeps only digits, groups the
+ * integer part with thousand separators, and renders Persian digits.
+ * Example: "1234567" / "۱۲۳۴۵۶۷" -> "۱,۲۳۴,۵۶۷"
+ *
+ * Read the value back with parsePersianNumber (which ignores the separators).
+ */
+export const formatPriceInput = (text: string): string => {
+  const digits = persianToEnglish(text).replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  // Drop leading zeros so "007" -> "7" (but keep a lone "0").
+  const trimmed = digits.replace(/^0+(?=\d)/, '');
+  const grouped = trimmed.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return englishToPersian(grouped);
+};
+
+/**
  * Parse a string with Persian/Arabic digits to a number
  * Handles comma separators and returns English number for API calls
  * Example: "۱,۲۳۴" -> 1234, "٤٥٦.٧" -> 456.7

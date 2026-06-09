@@ -69,7 +69,7 @@ router.post(
     body('amount').isFloat({ min: 0 }).withMessage(MESSAGES.validation.amountPositive),
     body('type')
       .optional()
-      .isIn(['money', 'gold'])
+      .isIn(['money', 'gold', 'dollar'])
       .withMessage(MESSAGES.validation.savingsTypeValid),
     body('goalId').optional().isMongoId().withMessage(MESSAGES.validation.goalIdValid),
     body('goalAllocations')
@@ -146,7 +146,7 @@ router.get(
     query('endDate').optional().isISO8601().withMessage(MESSAGES.validation.dateFormatInvalid),
     query('type')
       .optional()
-      .isIn(['money', 'gold'])
+      .isIn(['money', 'gold', 'dollar'])
       .withMessage(MESSAGES.validation.savingsTypeValid),
     query('goalId').optional().isMongoId().withMessage(MESSAGES.validation.goalIdValid),
     query('limit')

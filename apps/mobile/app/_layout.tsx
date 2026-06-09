@@ -1,5 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { queryClient } from '@/lib/queryClient';
@@ -17,7 +19,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/lib/toast';
 import { CustomSplashScreen } from '@/components/CustomSplashScreen';
-import { LogBox } from 'react-native';
+import { LogBox, StyleSheet } from 'react-native';
 import { useSavingsQueueSync } from '@/lib/hooks/useSavingsQueueSync';
 
 // Keep the splash screen visible while we fetch resources
@@ -92,10 +94,20 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <RootLayoutContent />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <RootLayoutContent />
+          </QueryClientProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

@@ -1,77 +1,60 @@
 import React from 'react';
 import { View, TextInput, StyleSheet, TextInputProps, ViewStyle, StyleProp } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { BlurView } from 'expo-blur';
 
 interface GlassInputProps extends TextInputProps {
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   containerStyle?: StyleProp<ViewStyle>;
+  /**
+   * Swap the underlying input element (e.g. gorhom's BottomSheetTextInput when
+   * used inside a bottom sheet so the keyboard avoidance works correctly).
+   */
+  InputComponent?: React.ComponentType<TextInputProps>;
 }
 
 /**
- * GlassInput - A glassmorphism input component
+ * GlassInput - Warm, solid inset input field (RTL-aware).
  */
 export default function GlassInput({
   icon,
   iconPosition = 'left',
   containerStyle,
   style,
+  InputComponent = TextInput,
   ...textInputProps
 }: GlassInputProps) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
 
   return (
     <View
       style={[
         styles.container,
         {
-          borderColor: theme.colors.glassBorder,
+          backgroundColor: theme.colors.inset,
+          borderColor: theme.colors.border,
+          borderRadius: theme.radius.lg,
         },
-        theme.shadows.small,
         containerStyle,
       ]}
     >
-      <BlurView
-        intensity={isDark ? 20 : 40}
-        tint={isDark ? 'dark' : 'light'}
-        style={styles.blur}
-      >
-        <View style={[styles.contentContainer, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.4)' }]}>
-            {icon && iconPosition === 'left' && <View style={styles.iconLeft}>{icon}</View>}
-            <TextInput
-                {...textInputProps}
-                style={[
-                styles.input,
-                {
-                    color: theme.colors.text,
-                },
-                style,
-                ]}
-                placeholderTextColor={theme.colors.textTertiary}
-            />
-            {icon && iconPosition === 'right' && <View style={styles.iconRight}>{icon}</View>}
-        </View>
-      </BlurView>
+      {icon && iconPosition === 'left' && <View style={styles.iconLeft}>{icon}</View>}
+      <InputComponent
+        {...textInputProps}
+        style={[styles.input, { color: theme.colors.text }, style]}
+        placeholderTextColor={theme.colors.textTertiary}
+      />
+      {icon && iconPosition === 'right' && <View style={styles.iconRight}>{icon}</View>}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  blur: {
-    height: '100%',
-    width: '100%',
-  },
   container: {
-    borderRadius: 16,
-    borderWidth: 1,
-    height: 56,
-    overflow: 'hidden',
-  },
-  contentContainer: {
     alignItems: 'center',
-    flex: 1,
+    borderWidth: 1,
     flexDirection: 'row',
+    height: 56,
     paddingHorizontal: 16,
   },
   iconLeft: {

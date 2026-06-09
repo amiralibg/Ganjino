@@ -46,7 +46,7 @@ export default function DepthButton({
     if (disabled) {
       return [theme.colors.cardBorder, theme.colors.cardBorder];
     }
-    
+
     if (variant === 'primary') {
       return theme.colors.primaryGradient;
     }
@@ -63,7 +63,7 @@ export default function DepthButton({
 
     switch (variant) {
       case 'primary':
-        return theme.isDark ? '#0A0A0A' : '#FFFFFF';
+        return '#3A2906'; // warm espresso on honey gold (both themes)
       case 'secondary':
         return theme.colors.text;
       case 'outline':
@@ -73,18 +73,6 @@ export default function DepthButton({
       default:
         return '#FFFFFF';
     }
-  };
-
-  const getShadow = () => {
-    if (disabled || variant === 'ghost' || variant === 'outline') {
-      return theme.shadows.none;
-    }
-
-    if (variant === 'primary') {
-      return theme.shadows.glow(theme.colors.primary);
-    }
-
-    return theme.shadows.small;
   };
 
   const getPadding = () => {
@@ -113,7 +101,7 @@ export default function DepthButton({
 
   const ButtonContent = () => (
     <View style={styles.contentContainer}>
-       {loading ? (
+      {loading ? (
         <ActivityIndicator color={getTextColor()} size="small" />
       ) : (
         <>
@@ -141,11 +129,7 @@ export default function DepthButton({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
-      style={[
-        styles.container,
-        getShadow(),
-        style,
-      ]}
+      style={[styles.container, style]}
     >
       <LinearGradient
         colors={getGradientColors() as [string, string]}
@@ -157,6 +141,7 @@ export default function DepthButton({
             borderRadius: theme.radius.xl,
             ...getPadding(),
           },
+          // eslint-disable-next-line react-native/no-inline-styles
           variant === 'outline' && {
             borderWidth: 2,
             borderColor: disabled ? theme.colors.cardBorder : theme.colors.primary,

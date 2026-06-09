@@ -40,7 +40,7 @@ const CustomNavBar: React.FC<BottomTabBarProps> = ({
           shadowRadius: 24,
         },
         android: {
-          elevation: 16,
+          elevation: 4,
         },
       }),
     },

@@ -46,15 +46,17 @@ export const TYPOGRAPHY = {
 } as const;
 
 export const RADIUS = {
-  sm: 8,
-  md: 12,
-  lg: 16,
+  sm: 10,
+  md: 14,
+  lg: 18,
   xl: 20,
-  '2xl': 24,
+  '2xl': 28,
   full: 9999,
 } as const;
 
-// Shadow system for depth
+// Shadow system — soft, warm, dialed back (warm & approachable)
+const SHADOW_TINT = '#785C1C'; // warm brown shadow tint
+
 export const SHADOWS = {
   none: {
     shadowColor: '#000',
@@ -64,39 +66,39 @@ export const SHADOWS = {
     elevation: 0,
   },
   small: {
-    shadowColor: '#000',
+    shadowColor: SHADOW_TINT,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 1,
   },
   medium: {
-    shadowColor: '#000',
+    shadowColor: SHADOW_TINT,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3,
   },
   large: {
-    shadowColor: '#000',
+    shadowColor: SHADOW_TINT,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.16,
-    shadowRadius: 16,
-    elevation: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 5,
   },
   elevated: {
-    shadowColor: '#000',
+    shadowColor: SHADOW_TINT,
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOpacity: 0.12,
+    shadowRadius: 28,
+    elevation: 8,
   },
   glow: (color: string) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.18,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 4,
   }),
 } as const;
 
@@ -113,7 +115,7 @@ export interface Theme {
     primaryLight: string;
     primaryLighter: string;
     primaryDark: string;
-    
+
     // Gradients (Start/End)
     primaryGradient: [string, string];
     cardGradient: [string, string];
@@ -130,13 +132,22 @@ export interface Theme {
     cardHighlight: string;
     cardBorder: string;
 
+    // Inset/field surface (warm sunken background for inputs)
+    inset: string;
+
     // Border variations
     border: string;
     borderLight: string;
 
+    // Gold accent variations (warm honey-amber signifier for طلا)
+    goldSoft: string;
+    goldSoftAlt: string;
+
     // Status colors
     success: string;
+    successDeep: string;
     successLight: string;
+    greenSoft: string;
     warning: string;
     warningLight: string;
     error: string;
@@ -156,50 +167,59 @@ export interface Theme {
 
 const darkTheme: Theme = {
   colors: {
-    // Background layers (darkest to lightest for depth)
-    background: '#050505', // Deep absolute black/gray
-    backgroundSecondary: '#0F0F0F', // Slightly lighter
-    backgroundTertiary: '#181818', // More definition
-    backgroundQuaternary: '#222222', // Elements
+    // Background layers — warm espresso, never harsh black
+    background: '#17130F', // Warm espresso
+    backgroundSecondary: '#1E1813', // Slightly lifted warm
+    backgroundTertiary: '#241E18', // Card-level warm
+    backgroundQuaternary: '#2C261E', // Elevated warm
 
-    // Primary gold with depth variations
-    primary: '#D4AF37', // Metallic Gold
-    primaryLight: '#F3D060', // Lighter Gold
-    primaryLighter: '#FAE596', // Pale Gold
-    primaryDark: '#AA8C2C', // Darkened Gold
-    
+    // Primary gold — softened honey-amber (طلا signifier)
+    primary: '#EAC257', // Honey gold
+    primaryLight: '#F2D173', // Bright honey
+    primaryLighter: '#F8E2A6', // Pale honey
+    primaryDark: '#C99A2E', // Deep gold
+
     // Gradients
-    primaryGradient: ['#D4AF37', '#F3D060'], // Rich Gold Gradient
-    cardGradient: ['#1A1A1A', '#121212'], // Subtle Card Gradient
-    cardGradientHighlight: ['#252525', '#1A1A1A'], // Active Card Gradient
+    primaryGradient: ['#F2D173', '#EAC257'], // Warm honey gradient
+    cardGradient: ['#2C261E', '#241E18'], // Subtle warm card gradient
+    cardGradientHighlight: ['#3A2F1A', '#2C261E'], // Active gold-tinted card
 
     // Text hierarchy (lighter = higher importance)
-    text: '#FFFFFF', // Pure White
-    textSecondary: '#CCCCCC', // Light Gray
-    textTertiary: '#888888', // Muted Gray
+    text: '#F6EFE3', // Warm cream
+    textSecondary: '#A89D8B', // Warm muted
+    textTertiary: '#6E6557', // Warm faint
 
     // Card/Surface layers (lighter colors = elevated surfaces)
-    card: '#141414', // Base dark card
-    cardElevated: '#1E1E1E', // Elevated card
-    cardHighlight: '#2A2A2A', // Highlight state
-    cardBorder: '#333333', // Subtle border
+    card: '#241E18', // Base warm card
+    cardElevated: '#2C261E', // Elevated warm card
+    cardHighlight: '#3A2F1A', // Gold-tinted highlight
+    cardBorder: '#332C23', // Warm subtle border
 
-    // Borders (lighter for emphasis)
-    border: '#2A2A2A',
-    borderLight: '#444444',
+    // Inset/field surface
+    inset: '#201A14',
 
-    // Status colors with light variations
-    success: '#10B981',
-    successLight: 'rgba(16, 185, 129, 0.15)',
-    warning: '#F59E0B',
-    warningLight: 'rgba(245, 158, 11, 0.15)',
-    error: '#EF4444',
-    errorLight: 'rgba(239, 68, 68, 0.15)',
+    // Borders
+    border: '#332C23',
+    borderLight: '#2A241D',
+
+    // Gold accent variations
+    goldSoft: '#2E2616', // Warm gold wash
+    goldSoftAlt: '#3A2F1A', // Stronger gold wash
+
+    // Status colors — muted emerald (پول signifier)
+    success: '#4FC18C',
+    successDeep: '#6FD6A6',
+    successLight: 'rgba(79, 193, 140, 0.16)',
+    greenSoft: '#173026', // Warm emerald wash
+    warning: '#E0A85A',
+    warningLight: 'rgba(224, 168, 90, 0.16)',
+    error: '#E08068', // Warm coral red
+    errorLight: '#2E1C16',
 
     // Overlay and glass effects
-    overlay: 'rgba(0, 0, 0, 0.85)',
-    glass: 'rgba(26, 26, 26, 0.65)',
-    glassBorder: 'rgba(255, 255, 255, 0.08)',
+    overlay: 'rgba(20, 12, 2, 0.55)',
+    glass: 'rgba(36, 30, 24, 0.72)',
+    glassBorder: 'rgba(246, 239, 227, 0.08)',
   },
   spacing: SPACING,
   typography: TYPOGRAPHY,
@@ -210,50 +230,59 @@ const darkTheme: Theme = {
 
 const lightTheme: Theme = {
   colors: {
-    // Background layers (darkest to lightest for depth)
-    background: '#F8F9FA', // Cool gray white
-    backgroundSecondary: '#FFFFFF', // Pure white
-    backgroundTertiary: '#F0F2F5', // Off-white
-    backgroundQuaternary: '#E9ECEF', // Subtle gray
+    // Background layers — warm cream paper
+    background: '#FAF6EF', // Warm cream
+    backgroundSecondary: '#FCF9F3', // Lighter cream
+    backgroundTertiary: '#F5EFE4', // Warm sand
+    backgroundQuaternary: '#F0E8D9', // Deeper sand
 
-    // Primary gold with depth variations
-    primary: '#D4AF37', // Metallic Gold
-    primaryLight: '#E6C24A', // Lighter Gold
-    primaryLighter: '#FBE8A6', // Pale Gold
-    primaryDark: '#B8962D', // Dark Gold
-    
+    // Primary gold — softened honey-amber
+    primary: '#D69A2C', // Honey gold
+    primaryLight: '#ECB849', // Bright honey
+    primaryLighter: '#F7E6C2', // Pale honey
+    primaryDark: '#B07C18', // Deep gold
+
     // Gradients
-    primaryGradient: ['#D4AF37', '#E6C24A'],
-    cardGradient: ['#FFFFFF', '#F8F9FA'],
-    cardGradientHighlight: ['#FFFBF0', '#FFFDF5'],
+    primaryGradient: ['#ECB849', '#D69A2C'],
+    cardGradient: ['#FFFFFF', '#FAF6EF'],
+    cardGradientHighlight: ['#FBEFD4', '#FFFFFF'],
 
-    // Text hierarchy (darker = higher importance in light mode)
-    text: '#111111', // Almost Black
-    textSecondary: '#555555', // Medium Gray
-    textTertiary: '#888888', // Light Gray
+    // Text hierarchy — warm espresso ink
+    text: '#2B2620', // Espresso
+    textSecondary: '#8B8174', // Warm gray
+    textTertiary: '#B7AE9F', // Warm faint
 
-    // Card/Surface layers (lighter = elevated in light mode)
+    // Card/Surface layers
     card: '#FFFFFF', // White card
     cardElevated: '#FFFFFF', // Elevated white card
-    cardHighlight: '#FEFCF5', // Warm tint for highlight
-    cardBorder: '#EDEEF0',
+    cardHighlight: '#FBEFD4', // Gold-tinted highlight
+    cardBorder: '#ECE3D3',
 
-    // Borders (darker for definition)
-    border: '#E2E4E8',
-    borderLight: '#EEEFF2',
+    // Inset/field surface
+    inset: '#F7F2E9',
 
-    // Status colors with light variations
-    success: '#059669',
-    successLight: 'rgba(5, 150, 105, 0.1)',
-    warning: '#D97706',
-    warningLight: 'rgba(217, 119, 6, 0.1)',
-    error: '#DC2626',
-    errorLight: 'rgba(220, 38, 38, 0.1)',
+    // Borders
+    border: '#ECE3D3',
+    borderLight: '#F2EADC',
+
+    // Gold accent variations
+    goldSoft: '#FBEFD4', // Warm gold wash
+    goldSoftAlt: '#F7E6C2', // Stronger gold wash
+
+    // Status colors — muted emerald
+    success: '#2E9E6B',
+    successDeep: '#1E7A50',
+    successLight: 'rgba(46, 158, 107, 0.12)',
+    greenSoft: '#E2F2E9', // Soft emerald wash
+    warning: '#C98A2E',
+    warningLight: 'rgba(201, 138, 46, 0.12)',
+    error: '#D9694F', // Warm coral red
+    errorLight: '#FBE9E3',
 
     // Overlay and glass effects
-    overlay: 'rgba(0, 0, 0, 0.4)',
-    glass: 'rgba(255, 255, 255, 0.75)',
-    glassBorder: 'rgba(255, 255, 255, 0.5)',
+    overlay: 'rgba(43, 38, 32, 0.4)',
+    glass: 'rgba(255, 255, 255, 0.8)',
+    glassBorder: 'rgba(43, 38, 32, 0.06)',
   },
   spacing: SPACING,
   typography: TYPOGRAPHY,

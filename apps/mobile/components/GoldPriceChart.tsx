@@ -80,9 +80,14 @@ export default function GoldPriceChart({ days = 30 }: GoldPriceChartProps) {
       marginTop: 8,
     },
     container: {
-      borderRadius: 24,
-      marginTop: 24,
+      backgroundColor: theme.colors.backgroundTertiary, // Cleaner look than elevated
+      borderColor: theme.colors.borderLight,
+      borderRadius: theme.radius.md,
+      borderWidth: 1,
+      marginBottom: theme.spacing.sm,
+      marginTop: 0,
       overflow: 'hidden',
+      padding: 0,
     },
     contentContainer: {
       padding: 20,

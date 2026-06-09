@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface StatCardProps {
@@ -14,7 +13,7 @@ interface StatCardProps {
 }
 
 /**
- * StatCard - Glassmorphism style card for displaying statistics
+ * StatCard - Warm, clean hero card for displaying statistics.
  */
 export default function StatCard({
   icon,
@@ -24,95 +23,60 @@ export default function StatCard({
   variant = 'default',
   style,
 }: StatCardProps) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
 
   const getAccentColor = () => {
     switch (variant) {
-      case 'primary':
-        return theme.colors.primary;
       case 'success':
         return theme.colors.success;
       case 'warning':
         return theme.colors.warning;
       case 'error':
         return theme.colors.error;
+      case 'primary':
       default:
         return theme.colors.primary;
     }
   };
 
   const accentColor = getAccentColor();
+  const gradientColors: [string, string] =
+    variant === 'primary' ? [theme.colors.goldSoft, theme.colors.card] : theme.colors.cardGradient;
 
   return (
     <View
       style={[
         styles.container,
         {
-          borderColor: theme.colors.glassBorder,
+          borderColor: variant === 'primary' ? theme.colors.goldSoftAlt : theme.colors.border,
         },
-        theme.shadows.medium,
+        theme.shadows.small,
         style,
       ]}
     >
-      <BlurView intensity={isDark ? 30 : 50} tint={isDark ? 'dark' : 'light'} style={styles.blur}>
-        <LinearGradient
-          colors={
-            isDark
-              ? ['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.01)']
-              : ['rgba(255,255,255,0.6)', 'rgba(255,255,255,0.4)']
-          }
-          style={styles.gradient}
-        >
-          <View style={[styles.iconContainer, { backgroundColor: accentColor + '15' }]}>
-            {icon}
-          </View>
-          
-          <Text
-            style={[
-              styles.label,
-              {
-                color: theme.colors.textSecondary,
-              },
-            ]}
-          >
-            {label}
-          </Text>
-          
-          <Text
-            style={[
-              styles.value,
-              {
-                color: theme.colors.text, // Use main text color for cleaner look
-              },
-            ]}
-          >
-            {value}
-          </Text>
-          
-          {subtext && (
-            <Text
-              style={[
-                styles.subtext,
-                {
-                  color: accentColor, // Accent color for subtext/trend
-                },
-              ]}
-            >
-              {subtext}
-            </Text>
-          )}
-        </LinearGradient>
-      </BlurView>
+      <LinearGradient
+        colors={gradientColors}
+        start={{ x: 0.1, y: 0 }}
+        end={{ x: 0.9, y: 1 }}
+        style={styles.gradient}
+      >
+        <View style={[styles.iconContainer, { backgroundColor: accentColor + '1A' }]}>{icon}</View>
+
+        <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{label}</Text>
+
+        <Text style={[styles.value, { color: theme.colors.text }]}>{value}</Text>
+
+        {subtext && (
+          <Text style={[styles.subtext, { color: theme.colors.primaryDark }]}>{subtext}</Text>
+        )}
+      </LinearGradient>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  blur: {
-    width: '100%',
-  },
   container: {
-    borderRadius: 24,
+    borderRadius: 28,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -129,14 +93,14 @@ const styles = StyleSheet.create({
     width: 64,
   },
   label: {
-    fontFamily: 'Vazirmatn_400Regular',
+    fontFamily: 'Vazirmatn_500Medium',
     fontSize: 14,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
     marginBottom: 4,
     textAlign: 'center',
   },
   subtext: {
-    fontFamily: 'Vazirmatn_500Medium',
+    fontFamily: 'Vazirmatn_700Bold',
     fontSize: 13,
     marginTop: 8,
     textAlign: 'center',
@@ -144,6 +108,7 @@ const styles = StyleSheet.create({
   value: {
     fontFamily: 'Vazirmatn_700Bold',
     fontSize: 32,
+    letterSpacing: -0.5,
     textAlign: 'center',
   },
 });

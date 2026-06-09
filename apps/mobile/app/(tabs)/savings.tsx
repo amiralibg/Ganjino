@@ -1,3 +1,4 @@
+/* eslint-disable react-native/no-inline-styles */
 import { useState, useMemo } from 'react';
 import {
   View,
@@ -6,7 +7,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import {
   useSavingsLogs,
@@ -14,13 +14,21 @@ import {
   useSavingsAnalytics,
 } from '@/lib/hooks/useSavingsLogs';
 import { useGoals } from '@/lib/hooks/useGoals';
-import { use18KGoldPrice } from '@/lib/hooks/useGold';
-import { History as HistoryIcon, Plus, Trash2, DollarSign, Coins } from 'lucide-react-native';
+import { use18KGoldPrice, useUSDPrice } from '@/lib/hooks/useGold';
+import {
+  History as HistoryIcon,
+  Plus,
+  Trash2,
+  DollarSign,
+  Coins,
+  Banknote,
+} from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { showToast } from '@/lib/toast';
 import { TEXT, formatNumber, formatDate, formatDecimal } from '@/constants/text';
 import { formatGoldWeight } from '@/lib/utils/goldUnits';
 import AddSavingsModal from '@/components/AddSavingsModal';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import DepthButton from '@/components/ui/DepthButton';
 import AppHeader from '@/components/AppHeader';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -34,15 +42,19 @@ export default function SavingsScreen() {
   const deleteSavingsLog = useDeleteSavingsLog();
   const { data: _goals = [] } = useGoals();
   const { data: goldPrice } = use18KGoldPrice();
+  const { data: usdPrice } = useUSDPrice();
   const { theme } = useTheme();
+
+  // Calm blue accent for dollar — matches AddSavingsModal.
+  const DOLLAR_ACCENT = '#4A9FE0';
 
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{
     id: string;
-    type: 'money' | 'gold';
+    type: 'money' | 'gold' | 'dollar';
   } | null>(null);
 
-  const handleDeleteLog = (logId: string, logType: 'money' | 'gold') => {
+  const handleDeleteLog = (logId: string, logType: 'money' | 'gold' | 'dollar') => {
     setDeleteConfirm({ id: logId, type: logType });
   };
 
@@ -58,24 +70,26 @@ export default function SavingsScreen() {
     }
   };
 
-  const getTotalSavings = () => {
-    const totals = { money: 0, gold: 0 };
+  const totals = useMemo(() => {
+    const acc = { money: 0, gold: 0, dollar: 0 };
     savingsLogs.forEach((log) => {
-      if (log.type === 'money') {
-        totals.money += log.amount;
+      if (log.type === 'gold') {
+        acc.gold += log.amount;
+      } else if (log.type === 'dollar') {
+        acc.dollar += log.amount;
       } else {
-        totals.gold += log.amount;
+        acc.money += log.amount;
       }
     });
-    return totals;
-  };
+    return acc;
+  }, [savingsLogs]);
 
-  const totals = getTotalSavings();
-
-  const deleteButtonBackgroundStyle = useMemo(() => ({ backgroundColor: '#DC2626' }), []);
+  // Combined value of every asset converted to Toman at live prices.
+  const goldValueToman = goldPrice ? totals.gold * goldPrice.price : 0;
+  const dollarValueToman = usdPrice ? totals.dollar * usdPrice.price : 0;
+  const combinedTotalToman = totals.money + goldValueToman + dollarValueToman;
 
   const addButtonStyle = useMemo(() => ({ marginBottom: 20 }), []);
-  const confirmButtonStyle = useMemo(() => ({ flex: 1 }), []);
 
   const summaryRowBorderStyle = useMemo(
     () => ({
@@ -87,10 +101,17 @@ export default function SavingsScreen() {
     [theme.colors.border]
   );
 
+  // Accent color per asset type
+  const getTypeAccent = (logType: 'money' | 'gold' | 'dollar') =>
+    logType === 'gold'
+      ? theme.colors.primary
+      : logType === 'dollar'
+        ? DOLLAR_ACCENT
+        : theme.colors.success;
+
   // Helper function for log icon background
-  const getLogIconBackground = (logType: 'money' | 'gold') => ({
-    backgroundColor:
-      logType === 'money' ? theme.colors.success + '20' : theme.colors.primary + '20',
+  const getLogIconBackground = (logType: 'money' | 'gold' | 'dollar') => ({
+    backgroundColor: getTypeAccent(logType) + '20',
   });
 
   const dynamicStyles = StyleSheet.create({
@@ -140,35 +161,8 @@ export default function SavingsScreen() {
       justifyContent: 'space-between',
       marginBottom: 12,
     },
-    confirmButtons: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    confirmContainer: {
-      borderRadius: 20,
-      maxWidth: 400,
-      padding: 24,
-      width: '100%',
-    },
-    confirmMessage: {
-      fontFamily: 'Vazirmatn_400Regular',
-      fontSize: 16,
-      lineHeight: 24,
-      marginBottom: 24,
-      textAlign: 'right',
-    },
-    confirmOverlay: {
-      alignItems: 'center',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      flex: 1,
-      justifyContent: 'center',
-      padding: 24,
-    },
-    confirmTitle: {
-      fontFamily: 'Vazirmatn_700Bold',
-      fontSize: 20,
-      marginBottom: 12,
-      textAlign: 'right',
+    breakdownValueWrap: {
+      alignItems: 'flex-start',
     },
     deleteButton: {
       padding: 8,
@@ -300,7 +294,6 @@ export default function SavingsScreen() {
       borderRadius: 20,
       borderWidth: 1,
       marginBottom: 20,
-      marginTop: 24,
       padding: 20,
     },
     summaryLabel: {
@@ -319,6 +312,40 @@ export default function SavingsScreen() {
       fontFamily: 'Vazirmatn_700Bold',
       fontSize: 18,
     },
+    totalCard: {
+      alignItems: 'center',
+      backgroundColor: theme.colors.card,
+      borderColor: theme.colors.primary,
+      borderRadius: 20,
+      borderWidth: 1,
+      marginBottom: 12,
+      marginTop: 24,
+      paddingHorizontal: 20,
+      paddingVertical: 24,
+    },
+    totalHint: {
+      color: theme.colors.textSecondary,
+      fontFamily: 'Vazirmatn_400Regular',
+      fontSize: 12,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    totalLabel: {
+      color: theme.colors.textSecondary,
+      fontFamily: 'Vazirmatn_500Medium',
+      fontSize: 14,
+      marginBottom: 8,
+    },
+    totalUnit: {
+      color: theme.colors.textSecondary,
+      fontFamily: 'Vazirmatn_500Medium',
+      fontSize: 15,
+    },
+    totalValue: {
+      color: theme.colors.text,
+      fontFamily: 'Vazirmatn_700Bold',
+      fontSize: 30,
+    },
   });
 
   const analyticsChartData =
@@ -332,7 +359,12 @@ export default function SavingsScreen() {
         acc.push({
           value,
           label: index % 2 === 0 ? item._id.period.slice(-5) : '',
-          frontColor: item._id.type === 'gold' ? theme.colors.primary : theme.colors.success,
+          frontColor:
+            item._id.type === 'gold'
+              ? theme.colors.primary
+              : item._id.type === 'dollar'
+                ? DOLLAR_ACCENT
+                : theme.colors.success,
         });
         return acc;
       },
@@ -350,7 +382,7 @@ export default function SavingsScreen() {
         style={dynamicStyles.logsList}
         showsVerticalScrollIndicator={false}
         // eslint-disable-next-line react-native/no-inline-styles
-        contentContainerStyle={{ paddingBottom: 180 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
       >
         <View style={dynamicStyles.sectionTabs}>
           {(
@@ -381,31 +413,57 @@ export default function SavingsScreen() {
         </View>
 
         {activeSection === 'overview' && (
-          <View style={dynamicStyles.summaryCard}>
-            <View style={dynamicStyles.summaryRow}>
-              <Text style={dynamicStyles.summaryValue}>
-                {formatNumber(totals.money)} {TEXT.common.toman}
+          <>
+            {/* Combined total across all assets, valued in Toman */}
+            <View style={dynamicStyles.totalCard}>
+              <Text style={dynamicStyles.totalLabel}>{TEXT.history.totalSavings}</Text>
+              <Text style={dynamicStyles.totalValue}>
+                {formatNumber(combinedTotalToman)}{' '}
+                <Text style={dynamicStyles.totalUnit}>{TEXT.common.toman}</Text>
               </Text>
-              <Text style={dynamicStyles.summaryLabel}>{TEXT.history.totalMoney}</Text>
+              <Text style={dynamicStyles.totalHint}>{TEXT.history.totalSavingsHint}</Text>
             </View>
-            <View style={dynamicStyles.summaryRow}>
-              <View>
+
+            {/* Per-asset breakdown */}
+            <View style={dynamicStyles.summaryCard}>
+              <View style={dynamicStyles.summaryRow}>
                 <Text style={dynamicStyles.summaryValue}>
-                  {formatDecimal(totals.gold)} {TEXT.common.gram}
+                  {formatNumber(totals.money)} {TEXT.common.toman}
                 </Text>
-                {goldPrice && (
-                  <Text style={dynamicStyles.summaryLabel}>
-                    ({formatNumber(totals.gold * goldPrice.price)} {TEXT.common.toman})
-                  </Text>
-                )}
+                <Text style={dynamicStyles.summaryLabel}>{TEXT.history.totalMoney}</Text>
               </View>
-              <Text style={dynamicStyles.summaryLabel}>{TEXT.history.gold}</Text>
+              <View style={dynamicStyles.summaryRow}>
+                <View style={dynamicStyles.breakdownValueWrap}>
+                  <Text style={dynamicStyles.summaryValue}>
+                    {formatDecimal(totals.gold)} {TEXT.common.gram}
+                  </Text>
+                  {goldPrice && (
+                    <Text style={dynamicStyles.summaryLabel}>
+                      ({formatNumber(goldValueToman)} {TEXT.common.toman})
+                    </Text>
+                  )}
+                </View>
+                <Text style={dynamicStyles.summaryLabel}>{TEXT.history.gold}</Text>
+              </View>
+              <View style={dynamicStyles.summaryRow}>
+                <View style={dynamicStyles.breakdownValueWrap}>
+                  <Text style={dynamicStyles.summaryValue}>
+                    {formatNumber(totals.dollar)} {TEXT.common.dollar}
+                  </Text>
+                  {usdPrice && (
+                    <Text style={dynamicStyles.summaryLabel}>
+                      ({formatNumber(dollarValueToman)} {TEXT.common.toman})
+                    </Text>
+                  )}
+                </View>
+                <Text style={dynamicStyles.summaryLabel}>{TEXT.history.dollar}</Text>
+              </View>
+              <View style={[dynamicStyles.summaryRow, summaryRowBorderStyle]}>
+                <Text style={dynamicStyles.summaryValue}>{formatNumber(savingsLogs.length)}</Text>
+                <Text style={dynamicStyles.summaryLabel}>{TEXT.history.totalEntries}</Text>
+              </View>
             </View>
-            <View style={[dynamicStyles.summaryRow, summaryRowBorderStyle]}>
-              <Text style={dynamicStyles.summaryValue}>{formatNumber(savingsLogs.length)}</Text>
-              <Text style={dynamicStyles.summaryLabel}>{TEXT.history.totalEntries}</Text>
-            </View>
-          </View>
+          </>
         )}
 
         {activeSection === 'analytics' && (
@@ -462,6 +520,12 @@ export default function SavingsScreen() {
                     </Text>
                   </View>
                   <View>
+                    <Text style={dynamicStyles.analyticsTotalLabel}>{TEXT.history.dollar}</Text>
+                    <Text style={dynamicStyles.analyticsTotalValue}>
+                      {formatNumber(analytics.totals.dollar)} {TEXT.common.dollar}
+                    </Text>
+                  </View>
+                  <View>
                     <Text style={dynamicStyles.analyticsTotalLabel}>
                       {TEXT.history.totalEntries}
                     </Text>
@@ -501,7 +565,7 @@ export default function SavingsScreen() {
           variant="primary"
           size="large"
           style={addButtonStyle}
-          icon={<Plus size={20} color={theme.isDark ? '#0A0A0A' : '#FFFFFF'} strokeWidth={2.5} />}
+          icon={<Plus size={20} color={'#3A2906'} strokeWidth={2.5} />}
           iconPosition="left"
         >
           {TEXT.history.addSavings}
@@ -520,28 +584,42 @@ export default function SavingsScreen() {
           ) : (
             savingsLogs.map((log) => {
               const goldFormatted = formatGoldWeight(log.amount);
+              const accent = getTypeAccent(log.type);
 
               return (
                 <View key={log._id} style={dynamicStyles.logCard}>
                   <View style={[dynamicStyles.logIcon, getLogIconBackground(log.type)]}>
-                    {log.type === 'money' ? (
-                      <DollarSign size={24} color={theme.colors.success} strokeWidth={2.5} />
+                    {log.type === 'gold' ? (
+                      <Coins size={24} color={accent} strokeWidth={2.5} />
+                    ) : log.type === 'dollar' ? (
+                      <DollarSign size={24} color={accent} strokeWidth={2.5} />
                     ) : (
-                      <Coins size={24} color={theme.colors.primary} strokeWidth={2.5} />
+                      <Banknote size={24} color={accent} strokeWidth={2.5} />
                     )}
                   </View>
                   <View style={dynamicStyles.logContent}>
                     <Text style={dynamicStyles.logType}>
-                      {log.type === 'money' ? TEXT.history.moneySaved : TEXT.history.goldSaved}
+                      {log.type === 'gold'
+                        ? TEXT.history.goldSaved
+                        : log.type === 'dollar'
+                          ? TEXT.history.dollarSaved
+                          : TEXT.history.moneySaved}
                     </Text>
                     <Text style={dynamicStyles.logAmount}>
                       {log.type === 'money'
                         ? `${formatNumber(log.amount)} ${TEXT.common.toman}`
-                        : `${formatDecimal(goldFormatted.primary.value)} ${goldFormatted.primary.unit}`}
+                        : log.type === 'dollar'
+                          ? `${formatNumber(log.amount)} ${TEXT.common.dollar}`
+                          : `${formatDecimal(goldFormatted.primary.value)} ${goldFormatted.primary.unit}`}
                     </Text>
                     {log.type === 'gold' && goldPrice && (
                       <Text style={dynamicStyles.logNote}>
                         {formatNumber(log.amount * goldPrice.price)} {TEXT.common.toman}
+                      </Text>
+                    )}
+                    {log.type === 'dollar' && usdPrice && (
+                      <Text style={dynamicStyles.logNote}>
+                        {formatNumber(log.amount * usdPrice.price)} {TEXT.common.toman}
                       </Text>
                     )}
                     {log.note && (
@@ -570,41 +648,14 @@ export default function SavingsScreen() {
 
       <AddSavingsModal visible={addModalVisible} onClose={() => setAddModalVisible(false)} />
 
-      <Modal
+      <ConfirmDialog
         visible={deleteConfirm !== null}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setDeleteConfirm(null)}
-      >
-        <View style={dynamicStyles.confirmOverlay}>
-          <View style={[dynamicStyles.confirmContainer, { backgroundColor: theme.colors.card }]}>
-            <Text style={[dynamicStyles.confirmTitle, { color: theme.colors.text }]}>
-              {TEXT.history.deleteTitle}
-            </Text>
-            <Text style={[dynamicStyles.confirmMessage, { color: theme.colors.textSecondary }]}>
-              {TEXT.history.deleteConfirm}
-            </Text>
-            <View style={dynamicStyles.confirmButtons}>
-              <DepthButton
-                onPress={() => setDeleteConfirm(null)}
-                variant="outline"
-                size="medium"
-                style={confirmButtonStyle}
-              >
-                {TEXT.common.cancel}
-              </DepthButton>
-              <DepthButton
-                onPress={confirmDelete}
-                variant="primary"
-                size="medium"
-                style={[confirmButtonStyle, deleteButtonBackgroundStyle]}
-              >
-                {TEXT.common.delete}
-              </DepthButton>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        title={TEXT.history.deleteTitle}
+        message={TEXT.history.deleteConfirm}
+        loading={deleteSavingsLog.isPending}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </View>
   );
 }
@@ -612,5 +663,6 @@ export default function SavingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 24,
   },
 });

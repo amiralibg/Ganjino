@@ -23,14 +23,14 @@ export default function CalculateScreen() {
         colors={[theme.colors.background, theme.colors.backgroundSecondary]}
         style={StyleSheet.absoluteFillObject}
       />
-      
+
       <AppHeader />
 
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
         // eslint-disable-next-line react-native/no-inline-styles
-        contentContainerStyle={{ paddingBottom: 180 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
       >
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -61,6 +61,7 @@ export default function CalculateScreen() {
             <View
               style={[
                 styles.trendCard,
+                // eslint-disable-next-line react-native/no-inline-styles
                 {
                   backgroundColor: theme.colors.backgroundTertiary, // Cleaner look than elevated
                   borderRadius: theme.radius.md,
@@ -106,7 +107,7 @@ export default function CalculateScreen() {
           variant="primary"
           size="large"
           style={{ marginTop: theme.spacing.lg }}
-          icon={<Plus size={24} color={theme.isDark ? '#0A0A0A' : '#FFFFFF'} strokeWidth={2.5} />}
+          icon={<Plus size={24} color={'#3A2906'} strokeWidth={2.5} />}
           iconPosition="left"
         >
           {TEXT.calculate.addNewGoal}
@@ -125,6 +126,7 @@ export default function CalculateScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 24,
   },
   content: {
     flex: 1,
