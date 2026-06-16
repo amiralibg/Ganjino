@@ -12,9 +12,10 @@ RUN pnpm install
 # Copy source and build the static bundle
 COPY . .
 
-# VITE_API_BASE_URL is baked into the bundle at build time, so it must be
-# provided as a build argument (set it in Dokploy under Build Args).
-ARG VITE_API_BASE_URL
+# VITE_API_BASE_URL is baked into the bundle at build time. Dokploy does not
+# forward runtime env vars as build args, so default it to the production API
+# URL here. Override with --build-arg VITE_API_BASE_URL=... for other envs.
+ARG VITE_API_BASE_URL=https://ganjino-api.amiralibg.xyz/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN pnpm run build
 
