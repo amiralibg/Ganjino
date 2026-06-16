@@ -1,5 +1,11 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import path from 'path';
+import { env } from './env';
+
+const servers = [
+  ...(env.API_URL ? [{ url: env.API_URL, description: 'Production server' }] : []),
+  { url: 'http://localhost:3000', description: 'Development server' },
+];
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -12,16 +18,7 @@ const options: swaggerJsdoc.Options = {
         name: 'API Support',
       },
     },
-    servers: [
-      {
-        url: 'https://ganjino-api.amiralibg.xyz',
-        description: 'Production server',
-      },
-      {
-        url: 'http://localhost:3000',
-        description: 'Development server',
-      },
-    ],
+    servers,
     components: {
       securitySchemes: {
         bearerAuth: {

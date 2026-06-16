@@ -12,6 +12,7 @@ export interface AppEnv {
   GOLD_API_KEY: string;
   GOLD_API_URL: string;
   CORS_ORIGIN: string[];
+  API_URL: string | undefined;
 }
 
 const DEFAULT_GOLD_API_URL = 'https://BrsApi.ir/Api/Market/Gold_Currency.php';
@@ -59,7 +60,13 @@ const validateEnv = (): AppEnv => {
   const MONGODB_URI = process.env.MONGODB_URI?.trim() || DEFAULT_MONGODB_URI;
   const GOLD_API_URL = process.env.GOLD_API_URL?.trim() || DEFAULT_GOLD_API_URL;
   const GOLD_API_KEY = requireValue(process.env.GOLD_API_KEY, 'GOLD_API_KEY');
+  const API_URL = process.env.API_URL?.trim() || undefined;
   const CORS_ORIGIN = parseCorsOrigins(process.env.CORS_ORIGIN);
+
+  // Always allow the API's own origin so Swagger UI can make test requests
+  if (API_URL && !CORS_ORIGIN.includes(API_URL)) {
+    CORS_ORIGIN.push(API_URL);
+  }
 
   if (NODE_ENV === 'production' && CORS_ORIGIN.length === 0) {
     throw new Error('CORS_ORIGIN must be set in production');
@@ -73,6 +80,7 @@ const validateEnv = (): AppEnv => {
     GOLD_API_KEY,
     GOLD_API_URL,
     CORS_ORIGIN,
+    API_URL,
   };
 };
 
