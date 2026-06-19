@@ -126,8 +126,8 @@ The service reads configuration from `.env`. The currently documented variables 
 | `MONGODB_URI` | MongoDB connection string |
 | `JWT_SECRET` | Secret used to sign access and refresh tokens |
 | `NODE_ENV` | Runtime mode (`development` or `production`) |
-| `GOLD_API_KEY` | API key for the external gold price provider |
-| `GOLD_API_URL` | Base URL for the external gold price provider |
+| `GOLD_API_KEY` | Nerkh API key used as the `x-api-key` query parameter |
+| `GOLD_API_URL` | Nerkh market snapshot URL, defaults to `/v1/prices/json/all` |
 | `CORS_ORIGIN` | Comma-separated allowlist for browser clients |
 | `SEED_SUPER_ADMIN_EMAIL` | Seeded super admin email |
 | `SEED_SUPER_ADMIN_PASSWORD` | Seeded super admin password |

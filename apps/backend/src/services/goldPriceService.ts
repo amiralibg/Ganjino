@@ -2,7 +2,7 @@ import GoldPriceHistory from '../models/GoldPriceHistory';
 import { get18KGoldPrice } from './goldPrice.service';
 
 /**
- * Fetch current gold price from BrsApi (via goldPrice.service)
+ * Fetch current gold price from Nerkh (via goldPrice.service)
  */
 export const fetchCurrentGoldPrice = async (): Promise<number> => {
   try {
@@ -10,7 +10,7 @@ export const fetchCurrentGoldPrice = async (): Promise<number> => {
     return price;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Error fetching gold price from BrsApi:', errorMessage);
+    console.error('Error fetching gold price from Nerkh:', errorMessage);
     throw new Error('Failed to fetch gold price');
   }
 };
@@ -50,7 +50,7 @@ export const storeTodayGoldPrice = async (): Promise<void> => {
     const priceRecord = new GoldPriceHistory({
       price: currentPrice,
       date: today,
-      source: 'brsapi.ir',
+      source: 'nerkh.io',
     });
 
     await priceRecord.save();

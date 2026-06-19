@@ -15,7 +15,7 @@ export interface AppEnv {
   API_URL: string | undefined;
 }
 
-const DEFAULT_GOLD_API_URL = 'https://BrsApi.ir/Api/Market/Gold_Currency.php';
+const DEFAULT_GOLD_API_URL = 'https://api.nerkh.io/v1/prices/json/all';
 const DEFAULT_MONGODB_URI = 'mongodb://localhost:27017/ganjino';
 const DEFAULT_PORT = 3000;
 

@@ -12,7 +12,7 @@ const getGoldApiKey = (): string => {
   return apiKey;
 };
 
-interface MarketItem {
+export interface MarketItem {
   date: string;
   time: string;
   time_unix: number;
@@ -25,42 +25,122 @@ interface MarketItem {
   unit: string;
 }
 
-interface GoldApiResponse {
+interface NerkhPriceItem {
+  current: string;
+  update?: string;
+  min?: Record<string, string>;
+  max?: Record<string, string>;
+}
+
+interface NerkhApiResponse {
+  data: {
+    message: string;
+    status: number;
+    timestamp: number;
+    date: string;
+    prices?: {
+      gold?: Record<string, NerkhPriceItem>;
+      currency?: Record<string, NerkhPriceItem>;
+    };
+    gold?: Record<string, NerkhPriceItem>;
+    currency?: Record<string, NerkhPriceItem>;
+  };
+}
+
+interface MarketSnapshot {
   gold: MarketItem[];
   currency: MarketItem[];
-  cryptocurrency: unknown[];
 }
 
 interface CachedMarketData {
-  data: GoldApiResponse;
+  data: MarketSnapshot;
   timestamp: number;
 }
 
 let marketCache: CachedMarketData | null = null;
 
+const parsePrice = (value: string | undefined, symbol: string): number => {
+  const price = Number(value);
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error(`Invalid price received for ${symbol}`);
+  }
+  return price;
+};
+
+const parseUpdateDate = (date: string): { date: string; time: string } => {
+  const [datePart = '', timePart = ''] = date.split(' ');
+  return { date: datePart, time: timePart };
+};
+
+const toMarketItem = (
+  symbol: string,
+  item: NerkhPriceItem,
+  fallbackTimestamp: number,
+  fallbackDate: string,
+  unit: string
+): MarketItem => {
+  const { date, time } = parseUpdateDate(item.update || fallbackDate);
+  const price = parsePrice(item.current, symbol);
+
+  return {
+    date,
+    time,
+    time_unix: fallbackTimestamp,
+    symbol,
+    name_en: symbol,
+    name: symbol,
+    price,
+    change_value: 0,
+    change_percent: 0,
+    unit,
+  };
+};
+
+const normalizeNerkhResponse = (response: NerkhApiResponse): MarketSnapshot => {
+  const payload = response.data;
+
+  const goldPrices = payload.prices?.gold || payload.gold || {};
+  const currencyPrices = payload.prices?.currency || payload.currency || {};
+
+  if (payload.status !== 200) {
+    throw new Error(payload.message || 'Invalid Nerkh API response');
+  }
+
+  const gold = Object.entries(goldPrices).map(([symbol, item]) =>
+    toMarketItem(symbol, item, payload.timestamp, payload.date, 'تومان')
+  );
+
+  const currency = Object.entries(currencyPrices).map(([symbol, item]) =>
+    toMarketItem(symbol, item, payload.timestamp, payload.date, 'تومان')
+  );
+
+  return { gold, currency };
+};
+
 /**
  * Fetch the full market snapshot (gold + currency) with a shared 5-minute cache.
  * A single upstream request returns gold and currency, so both share one cache.
  */
-const fetchMarketData = async (): Promise<GoldApiResponse> => {
+const fetchMarketData = async (): Promise<MarketSnapshot> => {
   if (marketCache && Date.now() - marketCache.timestamp < CACHE_DURATION) {
     console.log('Returning cached market data');
     return marketCache.data;
   }
 
   try {
-    console.log('Fetching fresh market data from API');
-    const response = await axios.get<GoldApiResponse>(GOLD_API_URL, {
-      params: { key: getGoldApiKey() },
+    console.log('Fetching fresh market data from Nerkh API');
+    const response = await axios.get<NerkhApiResponse>(GOLD_API_URL, {
+      params: { 'x-api-key': getGoldApiKey() },
       timeout: 10000, // 10 second timeout
     });
+    const marketData = normalizeNerkhResponse(response.data);
 
     marketCache = {
-      data: response.data,
+      data: marketData,
       timestamp: Date.now(),
     };
 
-    return response.data;
+    return marketData;
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Failed to fetch market data:', errorMessage);
@@ -87,7 +167,7 @@ export const fetchCurrencyPrices = async (): Promise<MarketItem[]> => {
 
 export const get18KGoldPrice = async (): Promise<number> => {
   const goldPrices = await fetchGoldPrices();
-  const gold18K = goldPrices.find((item) => item.symbol === 'IR_GOLD_18K');
+  const gold18K = goldPrices.find((item) => item.symbol === 'GOLD18K');
 
   if (!gold18K) {
     throw new Error('18K gold price not found');
